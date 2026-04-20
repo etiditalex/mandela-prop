@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #c9a646;
+  --black: #0b0b0b;
+  --cream: #f9f8f5;
+}
+
+body {
+  font-family: var(--font-body), sans-serif;
+}

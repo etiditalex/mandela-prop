@@ -13,7 +13,11 @@ const quickLinks = [
 export function Footer() {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/agent")) {
+  if (
+    pathname.startsWith("/agent") ||
+    pathname === "/terms-of-service" ||
+    pathname === "/faq"
+  ) {
     return null;
   }
 

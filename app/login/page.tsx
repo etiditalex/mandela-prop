@@ -91,7 +91,7 @@ function LoginForm() {
         </Button>
         <p className="text-sm text-zinc-600">
           No account?{" "}
-          <Link className="text-gold hover:underline" href="/signup">
+          <Link className="text-brand hover:underline" href="/signup">
             Create one
           </Link>
         </p>

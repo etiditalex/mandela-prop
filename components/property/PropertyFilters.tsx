@@ -29,7 +29,7 @@ export function PropertyFilters({
         <span className="font-medium">Location</span>
         <select
           id="location-filter"
-          className="h-11 rounded-sm border border-zinc-300 px-3 text-sm outline-none focus:border-gold"
+          className="h-11 rounded-sm border border-zinc-300 px-3 text-sm outline-none focus:border-brand"
           value={filters.location}
           onChange={(event) => onChange({ ...filters, location: event.target.value })}
         >
@@ -44,7 +44,7 @@ export function PropertyFilters({
         <span className="font-medium">Property Type</span>
         <select
           id="type-filter"
-          className="h-11 rounded-sm border border-zinc-300 px-3 text-sm outline-none focus:border-gold"
+          className="h-11 rounded-sm border border-zinc-300 px-3 text-sm outline-none focus:border-brand"
           value={filters.type}
           onChange={(event) => onChange({ ...filters, type: event.target.value })}
         >

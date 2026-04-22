@@ -8,7 +8,7 @@ export default async function IndustrialLandPage() {
     <section className="px-4 py-20 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
         <div className="rounded-3xl border border-zinc-200 bg-white p-8 sm:p-12">
-        <p className="text-sm uppercase tracking-[0.25em] text-gold">Land Category</p>
+        <p className="text-sm uppercase tracking-[0.25em] text-brand">Land Category</p>
         <h1 className="mt-4 text-4xl font-semibold text-black sm:text-5xl">
           Industrial Land
         </h1>

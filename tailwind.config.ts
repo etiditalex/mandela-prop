@@ -11,7 +11,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        gold: "var(--gold)",
+        brand: "var(--brand)",
         black: "var(--black)",
         cream: "var(--cream)",
       },

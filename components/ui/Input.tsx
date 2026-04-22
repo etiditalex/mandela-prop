@@ -12,7 +12,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
       <input
         ref={ref}
         className={clsx(
-          "h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors placeholder:text-zinc-400 focus:border-gold",
+          "h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors placeholder:text-zinc-400 focus:border-brand",
           className,
         )}
         id={id}

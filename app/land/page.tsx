@@ -10,7 +10,7 @@ export default async function LandPage() {
     <div className="bg-cream">
       <section className="bg-black px-4 py-20 text-white sm:px-6 lg:px-10">
         <div className="mx-auto max-w-7xl">
-          <p className="text-sm uppercase tracking-[0.25em] text-gold">Land Opportunities</p>
+          <p className="text-sm uppercase tracking-[0.25em] text-brand">Land Opportunities</p>
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">
             Explore premium land opportunities for development, investment, and future growth.
           </h1>
@@ -32,14 +32,14 @@ export default async function LandPage() {
             <Link
               key={category.slug}
               href={`/land/${category.slug}`}
-              className="rounded-3xl border border-zinc-200 bg-white p-8 transition hover:-translate-y-1 hover:border-gold hover:shadow-lg"
+              className="rounded-3xl border border-zinc-200 bg-white p-8 transition hover:-translate-y-1 hover:border-brand hover:shadow-lg"
             >
               <h2 className="text-2xl font-semibold text-black">{category.title}</h2>
               <p className="mt-4 leading-7 text-zinc-600">{category.description}</p>
               <p className="mt-4 text-sm font-medium text-zinc-500">
                 {categoryCount} listing{categoryCount === 1 ? "" : "s"} available
               </p>
-              <span className="mt-6 inline-flex text-sm font-semibold text-gold">
+              <span className="mt-6 inline-flex text-sm font-semibold text-brand">
                 View category
               </span>
             </Link>
@@ -52,7 +52,7 @@ export default async function LandPage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm uppercase tracking-[0.25em] text-gold">Live Inventory</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-brand">Live Inventory</p>
               <h2 className="mt-3 text-3xl font-semibold">Available Land Listings</h2>
             </div>
           </div>

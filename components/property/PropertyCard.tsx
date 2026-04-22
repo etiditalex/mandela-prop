@@ -27,18 +27,18 @@ export function PropertyCard({ property }: { property: Property }) {
         <button
           aria-label={saved ? "Remove saved property" : "Save property"}
           disabled={!user}
-          className="absolute right-3 top-3 rounded-full bg-white/90 p-2 text-zinc-800 shadow-sm transition-colors hover:text-gold"
+          className="absolute right-3 top-3 rounded-full bg-white/90 p-2 text-zinc-800 shadow-sm transition-colors hover:text-brand"
           onClick={() => toggleSave(property.id)}
           title={!user ? "Login to save properties" : undefined}
           type="button"
         >
-          <Heart className={saved ? "fill-gold text-gold" : ""} size={18} />
+          <Heart className={saved ? "fill-brand text-brand" : ""} size={18} />
         </button>
       </div>
       <div className="space-y-4 p-5">
         <div className="flex items-center justify-between">
           <Badge>{property.type}</Badge>
-          <p className="text-sm font-semibold text-gold">{formatCurrency(property.price)}</p>
+          <p className="text-sm font-semibold text-brand">{formatCurrency(property.price)}</p>
         </div>
         <div>
           <h3 className="text-lg font-semibold text-black">{property.title}</h3>

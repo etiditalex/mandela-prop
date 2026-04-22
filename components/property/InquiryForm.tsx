@@ -36,7 +36,7 @@ export function InquiryForm({ propertyId }: { propertyId: string }) {
     <form className="space-y-3 border-t border-zinc-200 pt-4" onSubmit={onSubmit}>
       <h3 className="text-lg font-semibold">Send Inquiry</h3>
       <textarea
-        className="w-full rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-gold"
+        className="w-full rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-brand"
         rows={4}
         placeholder="Share your interest, preferred viewing date, and budget."
         value={message}

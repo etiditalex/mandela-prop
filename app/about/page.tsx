@@ -15,7 +15,7 @@ export default function AboutPage() {
   return (
     <section className="mx-auto w-full max-w-7xl space-y-16 px-4 py-16 sm:px-6 lg:px-10">
       <div className="space-y-4">
-        <p className="text-sm uppercase tracking-[0.25em] text-gold">About Us</p>
+        <p className="text-sm uppercase tracking-[0.25em] text-brand">About Us</p>
         <h1 className="text-4xl font-semibold">A Real Estate Advisory Built on Trust</h1>
         <p className="max-w-3xl text-zinc-700">
           GOLDKEY Estates is a premium real estate practice focused on curation,

@@ -27,7 +27,7 @@ export function Footer() {
           </p>
         </div>
         <div>
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-brand">
             Quick Links
           </h3>
           <ul className="space-y-3 text-sm">
@@ -41,7 +41,7 @@ export function Footer() {
           </ul>
         </div>
         <div>
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-gold">
+          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-brand">
             Contact
           </h3>
           <p className="text-sm leading-7 text-zinc-400">

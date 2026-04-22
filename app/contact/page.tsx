@@ -12,7 +12,7 @@ export default function ContactPage() {
   return (
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-10">
       <div className="mb-10 space-y-3">
-        <p className="text-sm uppercase tracking-[0.25em] text-gold">Contact</p>
+        <p className="text-sm uppercase tracking-[0.25em] text-brand">Contact</p>
         <h1 className="text-4xl font-semibold">Schedule a Private Consultation</h1>
       </div>
       <div className="grid gap-8 lg:grid-cols-2">
@@ -25,7 +25,7 @@ export default function ContactPage() {
             <textarea
               id="message"
               rows={6}
-              className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-gold"
+              className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-brand"
               placeholder="Tell us what you are looking for..."
             />
           </label>

@@ -60,7 +60,7 @@ export default async function PropertyDetailsPage({ params }: PropertyDetailsPag
           </div>
         </div>
         <aside className="space-y-6 rounded-sm border border-zinc-200 bg-white p-6">
-          <p className="text-sm uppercase tracking-[0.2em] text-gold">Price</p>
+          <p className="text-sm uppercase tracking-[0.2em] text-brand">Price</p>
           <p className="text-3xl font-semibold">{formatCurrency(property.price)}</p>
           <ul className="space-y-2 text-sm text-zinc-700">
             <li>{property.beds} Bedrooms</li>

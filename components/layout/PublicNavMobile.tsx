@@ -19,13 +19,13 @@ export function PublicNavMobile({ variant = "site", savedCount = 0 }: PublicNavM
     <header className="sticky top-0 z-50 flex w-full items-center justify-between gap-3 bg-[#1a1a1a] px-4 py-3">
       <Link
         href="/"
-        className="flex h-14 min-w-[4.75rem] flex-col items-center justify-center bg-gold px-2 text-center leading-none shadow-sm"
+        className="flex h-14 min-w-[4.75rem] flex-col items-center justify-center bg-brand px-2 text-center leading-none shadow-sm"
       >
-        <span className="text-base font-black tracking-tight text-black">Green</span>
-        <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-black/90">
+        <span className="text-base font-black tracking-tight text-white">Green</span>
+        <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/90">
           Haven
         </span>
-        <span className="mt-0.5 text-[6px] font-semibold uppercase tracking-wider text-black/75">
+        <span className="mt-0.5 text-[6px] font-semibold uppercase tracking-wider text-white/75">
           Real Estate
         </span>
       </Link>

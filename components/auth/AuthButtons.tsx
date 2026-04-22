@@ -31,19 +31,19 @@ export function AuthButtons({
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <Link
           href="/login"
-          className={clsx("text-sm font-medium text-zinc-700 hover:text-gold", linkClassName)}
+          className={clsx("text-sm font-medium text-zinc-700 hover:text-brand", linkClassName)}
         >
           Login
         </Link>
         <Link
           href="/signup"
-          className={clsx("text-sm font-medium text-zinc-700 hover:text-gold", linkClassName)}
+          className={clsx("text-sm font-medium text-zinc-700 hover:text-brand", linkClassName)}
         >
           Sign up
         </Link>
         <Link
           href={agentLoginHref}
-          className={clsx("text-sm font-medium text-zinc-700 hover:text-gold", linkClassName)}
+          className={clsx("text-sm font-medium text-zinc-700 hover:text-brand", linkClassName)}
           title="Agent dashboard — sign in"
         >
           Agent
@@ -57,13 +57,13 @@ export function AuthButtons({
       {ready && isStaff && (
         <Link
           href="/agent/properties"
-          className={clsx("text-sm font-medium text-zinc-700 hover:text-gold", linkClassName)}
+          className={clsx("text-sm font-medium text-zinc-700 hover:text-brand", linkClassName)}
         >
           Dashboard
         </Link>
       )}
       <button
-        className={clsx("text-sm font-medium text-zinc-700 hover:text-gold", className)}
+        className={clsx("text-sm font-medium text-zinc-700 hover:text-brand", className)}
         onClick={onLogout}
         type="button"
       >

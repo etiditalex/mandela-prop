@@ -59,7 +59,7 @@ export function Footer() {
           <h3 className="text-2xl font-semibold sm:text-3xl">Free Consultation</h3>
           <p className="text-base sm:text-lg">
             <span className="font-semibold">Call Us: </span>
-            +254 700 000 000
+            +254 789 579720
           </p>
           <p className="text-base leading-7 text-white/95 sm:text-lg sm:leading-8">
             Kilifi, Bofa Road

@@ -37,7 +37,7 @@ export default async function Home() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/65" />
           <div className="relative z-10 flex min-h-[100svh] flex-col justify-center px-5 pb-36 pt-8 text-center">
             <h1 className="text-balance font-semibold leading-tight tracking-tight text-white">
-              <span className="block text-[1.65rem] sm:text-3xl">Kenya&apos;s Gateway to</span>
+              <span className="block text-[1.65rem] sm:text-3xl">Coastal&apos;s Gateway to</span>
               <span className="mt-2 block text-[1.85rem] text-brand sm:text-4xl">Premium Real Estate</span>
             </h1>
             <p className="mx-auto mt-6 max-w-md text-pretty text-sm leading-relaxed text-white/90 sm:text-base">

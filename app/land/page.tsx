@@ -8,7 +8,7 @@ export default async function LandPage() {
 
   return (
     <div className="bg-cream">
-      <section className="bg-black px-4 py-20 text-white sm:px-6 lg:px-10">
+      <section className="bg-brand px-4 py-20 text-white sm:px-6 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <p className="text-sm uppercase tracking-[0.25em] text-brand">Land Opportunities</p>
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">

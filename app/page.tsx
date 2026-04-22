@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
-import { MobileBottomNav } from "@/components/home/MobileBottomNav";
 import { FutureRealEstateCta } from "@/components/home/FutureRealEstateCta";
 import { KarimCoastalIntro } from "@/components/home/KarimCoastalIntro";
 import { PortfolioServicesBand } from "@/components/home/PortfolioServicesBand";
@@ -22,11 +21,11 @@ export default async function Home() {
   const featuredProperties = allProperties.slice(0, 3);
 
   return (
-    <div className="pb-24 md:pb-0">
+    <div>
       <section className="relative md:hidden">
         <PublicNavMobile variant="home" />
 
-        <div className="relative isolate min-h-[calc(100vh-3.5rem+30rem)] w-full supports-[height:100dvh]:min-h-[calc(100dvh-3.5rem+30rem)]">
+        <div className="relative isolate min-h-[100svh] w-full">
           <Image
             src={HERO_GREEN_LAND}
             alt="Green land with luxury homes"
@@ -36,7 +35,7 @@ export default async function Home() {
             sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/65" />
-          <div className="relative z-10 flex min-h-[calc(100vh-3.5rem+30rem)] flex-col justify-center px-5 pb-80 pt-8 text-center supports-[height:100dvh]:min-h-[calc(100dvh-3.5rem+30rem)]">
+          <div className="relative z-10 flex min-h-[100svh] flex-col justify-center px-5 pb-36 pt-8 text-center">
             <h1 className="text-balance font-semibold leading-tight tracking-tight text-white">
               <span className="block text-[1.65rem] sm:text-3xl">Kenya&apos;s Gateway to</span>
               <span className="mt-2 block text-[1.85rem] text-brand sm:text-4xl">Premium Real Estate</span>
@@ -45,7 +44,7 @@ export default async function Home() {
               Curated homes, land, and investment opportunities with trusted guidance and a
               seamless search experience tailored to you.
             </p>
-            <div className="mt-10">
+            <div className="mt-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
               <Link
                 href="/properties"
                 className="inline-flex items-center justify-center gap-2 rounded-sm bg-brand px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:bg-brand/90"
@@ -59,7 +58,7 @@ export default async function Home() {
       </section>
 
       {/* Tablet & desktop: same glass nav component as elsewhere, over hero image */}
-      <section className="relative z-0 hidden min-h-[1360px] w-full overflow-hidden text-white sm:min-h-[1400px] md:block lg:min-h-[min(100vh,1560px)]">
+      <section className="relative z-0 hidden min-h-[78vh] w-full overflow-hidden text-white md:block lg:min-h-[86vh]">
           <Image
             src={HERO_GREEN_LAND}
             alt="Green land with luxury homes"
@@ -71,7 +70,7 @@ export default async function Home() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
 
-          <div className="relative z-10 mx-auto flex min-h-[1360px] w-full max-w-7xl flex-col px-4 pb-32 pt-4 sm:min-h-[1400px] sm:px-6 sm:pb-36 sm:pt-8 lg:min-h-[min(100vh,1560px)] lg:px-10 lg:pb-60 lg:pt-10">
+          <div className="relative z-10 mx-auto flex min-h-[78vh] w-full max-w-7xl flex-col px-4 pb-16 pt-4 sm:px-6 sm:pb-20 sm:pt-8 lg:min-h-[86vh] lg:px-10 lg:pb-24 lg:pt-10">
             <PublicNavDesktopPill variant="hero" />
 
             <div className="flex flex-1 items-end pt-10 sm:pt-12">
@@ -196,7 +195,6 @@ export default async function Home() {
         </div>
       </section>
 
-      <MobileBottomNav />
     </div>
   );
 }

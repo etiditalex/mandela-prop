@@ -14,6 +14,9 @@ const items = [
 
 export function MobileBottomNav() {
   const pathname = usePathname();
+  if (pathname.startsWith("/agent")) {
+    return null;
+  }
 
   return (
     <nav

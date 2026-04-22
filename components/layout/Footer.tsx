@@ -4,21 +4,27 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const quickLinks = [
-  { href: "/properties", label: "Properties" },
+  { href: "/", label: "Home" },
+  { href: "/properties", label: "For Sale" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
 ];
 
 export function Footer() {
   const pathname = usePathname();
+  const isHomePage = pathname === "/";
 
-  if (pathname === "/" || pathname.startsWith("/agent")) {
+  if (pathname.startsWith("/agent")) {
     return null;
   }
 
   return (
     <footer className="border-t border-zinc-200 bg-black text-zinc-300">
-      <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-3 lg:px-10">
+      <div
+        className={`mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:px-10 ${
+          isHomePage ? "lg:grid-cols-3" : "lg:grid-cols-2"
+        }`}
+      >
         <div className="space-y-4">
           <h2 className="text-lg font-semibold tracking-[0.2em] text-white">GOLDKEY</h2>
           <p className="max-w-sm text-sm leading-7 text-zinc-400">
@@ -26,20 +32,22 @@ export function Footer() {
             Nairobi&apos;s prime neighborhoods.
           </p>
         </div>
-        <div>
-          <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-brand">
-            Quick Links
-          </h3>
-          <ul className="space-y-3 text-sm">
-            {quickLinks.map((link) => (
-              <li key={link.href}>
-                <Link className="transition-colors hover:text-white" href={link.href}>
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        {isHomePage ? (
+          <div>
+            <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-brand">
+              Quick Links
+            </h3>
+            <ul className="space-y-3 text-sm">
+              {quickLinks.map((link) => (
+                <li key={link.href}>
+                  <Link className="transition-colors hover:text-white" href={link.href}>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <div>
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-[0.2em] text-brand">
             Contact

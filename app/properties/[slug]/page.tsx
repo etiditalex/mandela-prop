@@ -79,7 +79,7 @@ export default async function PropertyDetailsPage({ params }: PropertyDetailsPag
                 <PhoneCall size={14} /> +254 700 111 222
               </p>
               <p className="inline-flex items-center gap-2">
-                <Mail size={14} /> sarah@goldkeyestates.com
+                <Mail size={14} /> sarah@karimrealestate.com
               </p>
             </div>
           </div>

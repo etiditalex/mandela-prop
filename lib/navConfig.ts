@@ -8,6 +8,7 @@ export const landNavLinks = [
 /** Before Land dropdown — same as home hero */
 export const navLinksBeforeLand = [
   { href: "/", label: "Home" },
+  { href: "/services", label: "Services" },
   { href: "/about", label: "About" },
   { href: "/properties", label: "Properties" },
 ] as const;

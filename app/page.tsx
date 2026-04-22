@@ -58,7 +58,7 @@ export default async function Home() {
       </section>
 
       {/* Tablet & desktop: same glass nav component as elsewhere, over hero image */}
-      <section className="relative z-0 hidden min-h-[78vh] w-full overflow-hidden text-white md:block lg:min-h-[86vh]">
+      <section className="relative z-0 hidden min-h-[100vh] w-full overflow-hidden text-white md:block">
           <Image
             src={HERO_GREEN_LAND}
             alt="Green land with luxury homes"
@@ -70,11 +70,11 @@ export default async function Home() {
           <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
 
-          <div className="relative z-10 mx-auto flex min-h-[78vh] w-full max-w-7xl flex-col px-4 pb-16 pt-4 sm:px-6 sm:pb-20 sm:pt-8 lg:min-h-[86vh] lg:px-10 lg:pb-24 lg:pt-10">
+          <div className="relative z-10 mx-auto flex min-h-[100vh] w-full max-w-7xl flex-col px-4 pb-14 pt-4 sm:px-6 sm:pb-16 sm:pt-8 lg:px-10 lg:pb-20 lg:pt-10">
             <PublicNavDesktopPill variant="hero" />
 
-            <div className="flex flex-1 items-end pt-10 sm:pt-12">
-              <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <div className="flex flex-1 items-center pt-10 sm:pt-12">
+              <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                 <div className="max-w-lg space-y-4 sm:space-y-5">
                   <h1 className="text-3xl font-semibold leading-tight sm:text-5xl">
                     Your Perfect
@@ -86,13 +86,13 @@ export default async function Home() {
                     discover your ideal suburban home.
                   </p>
                   <Link href="/properties">
-                    <Button className="w-full rounded-full border-white bg-white text-black hover:bg-white/90 sm:w-auto">
+                    <Button className="w-full rounded-full border-brand bg-brand text-white hover:bg-brand/90 sm:w-auto">
                       Get Started
                     </Button>
                   </Link>
                 </div>
 
-                <div className="flex flex-col gap-3 self-end lg:items-end">
+                <div className="flex flex-col gap-3 lg:items-end">
                   <Link href="/properties">
                     <Button
                       variant="outline"
@@ -141,45 +141,6 @@ export default async function Home() {
       <PortfolioServicesBand />
 
       <FutureRealEstateCta />
-
-      <section className="bg-white px-4 py-20 sm:px-6 lg:px-10">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-3">
-          {[
-            "Discreet client representation",
-            "Investment-grade market intelligence",
-            "End-to-end transaction support",
-          ].map((service) => (
-            <div key={service} className="rounded-sm border border-zinc-200 p-6">
-              <h3 className="text-xl font-semibold">{service}</h3>
-              <p className="mt-3 text-sm leading-7 text-zinc-600">
-                A refined service model focused on confidence, transparency, and
-                long-term value creation.
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-10">
-        <div className="grid gap-8 lg:grid-cols-2">
-          <div className="rounded-sm border border-zinc-200 bg-white p-8">
-            <p className="text-sm uppercase tracking-[0.25em] text-brand">About</p>
-            <h2 className="mt-3 text-3xl font-semibold">Built for Discerning Clients</h2>
-            <p className="mt-4 leading-8 text-zinc-700">
-              Our advisors combine market depth with white-glove service to deliver
-              properties aligned to your lifestyle and investment objectives.
-            </p>
-          </div>
-          <div className="rounded-sm border border-zinc-200 bg-white p-8">
-            <p className="text-sm uppercase tracking-[0.25em] text-brand">Testimonials</p>
-            <blockquote className="mt-4 text-lg leading-8 text-zinc-700">
-              &quot;Their advisory process was precise and discreet. We secured a
-              residence that exceeded expectations.&quot;
-            </blockquote>
-            <p className="mt-4 text-sm font-medium text-black">- Private Client, Nairobi</p>
-          </div>
-        </div>
-      </section>
 
       <section className="bg-black px-4 py-16 sm:px-6 lg:px-10">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-6">

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExternalLink, Home, LayoutDashboard, MapPin, Settings, Users } from "lucide-react";
+import { Building2, ExternalLink, Home, LayoutDashboard, MapPin, Settings, Users } from "lucide-react";
 
 import { useProfileRole } from "@/hooks/useProfileRole";
 
@@ -15,9 +15,9 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { label: "Dashboard", href: "/agent/properties", match: "/agent/properties", icon: LayoutDashboard },
   { label: "Users", href: "/agent/users", match: "/agent/users", icon: Users, adminOnly: true },
   { label: "Settings", href: "/agent/settings", match: "/agent/settings", icon: Settings },
+  { label: "Properties", href: "/agent/properties", match: "/agent/properties", icon: Building2 },
 ];
 
 export function AdminSidebar() {
@@ -36,8 +36,10 @@ export function AdminSidebar() {
           <Home className="h-5 w-5" strokeWidth={2} />
         </span>
         <div>
-          <p className="text-base font-bold tracking-tight text-slate-900">GOLDKEY</p>
-          <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">Staff</p>
+          <p className="text-base font-bold tracking-tight text-slate-900">KARIM REAL ESTATE</p>
+          <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
+            Admin Dashboard
+          </p>
         </div>
       </div>
 
@@ -84,7 +86,7 @@ export function AdminSidebar() {
 
       <div className="border-t border-slate-100 p-4">
         <p className="text-center text-[11px] leading-relaxed text-slate-400">
-          © {new Date().getFullYear()} GOLDKEY Estates
+          © {new Date().getFullYear()} Karim Real Estate
         </p>
       </div>
     </aside>

@@ -9,33 +9,64 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Database } from "@/types/database";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type AppRole = Database["public"]["Tables"]["profiles"]["Row"]["role"];
 
 export default function AgentUsersPage() {
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const loadUsers = async () => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data, error: queryError } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (queryError) {
+        setError(queryError.message);
+        return;
+      }
+
+      setUsers(data ?? []);
+    } catch {
+      setError("Supabase env vars are missing.");
+    }
+  };
 
   useEffect(() => {
-    async function loadUsers() {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          setError(error.message);
-          return;
-        }
-
-        setUsers(data ?? []);
-      } catch {
-        setError("Supabase env vars are missing.");
-      }
-    }
-
     void loadUsers();
   }, []);
+
+  const onRoleChange = async (userId: string, role: AppRole) => {
+    setError(null);
+    setMessage(null);
+    setUpdatingUserId(userId);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ role })
+        .eq("id", userId);
+
+      if (updateError) {
+        setError(updateError.message);
+        return;
+      }
+
+      setUsers((current) =>
+        current.map((user) => (user.id === userId ? { ...user, role } : user)),
+      );
+      setMessage("User role updated.");
+    } catch {
+      setError("Unable to update role.");
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
 
   const admins = users.filter((user) => user.role === "admin").length;
   const agents = users.filter((user) => user.role === "agent").length;
@@ -87,7 +118,12 @@ export default function AgentUsersPage() {
           </p>
         </div>
 
-        {error && <p className="px-6 py-4 text-sm text-red-600">{error}</p>}
+        {(error || message) && (
+          <div className="space-y-1 px-6 py-4">
+            {error && <p className="text-sm text-red-600">{error}</p>}
+            {message && <p className="text-sm text-emerald-700">{message}</p>}
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
@@ -97,6 +133,7 @@ export default function AgentUsersPage() {
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Phone</th>
                 <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Set role</th>
                 <th className="px-4 py-3 font-medium">Joined</th>
                 <th className="w-12 px-4 py-3 text-right font-medium" aria-hidden />
               </tr>
@@ -113,6 +150,24 @@ export default function AgentUsersPage() {
                     <Badge className="border-blue-100 bg-blue-50 capitalize text-blue-800">
                       {user.role}
                     </Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    <label className="sr-only" htmlFor={`role-${user.id}`}>
+                      Set role for {user.email}
+                    </label>
+                    <select
+                      id={`role-${user.id}`}
+                      value={user.role}
+                      onChange={(event) =>
+                        void onRoleChange(user.id, event.target.value as AppRole)
+                      }
+                      disabled={updatingUserId === user.id}
+                      className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs capitalize text-slate-700 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <option value="client">client</option>
+                      <option value="agent">agent</option>
+                      <option value="admin">admin</option>
+                    </select>
                   </td>
                   <td className="px-4 py-3 text-slate-500">
                     {new Date(user.created_at).toLocaleDateString()}

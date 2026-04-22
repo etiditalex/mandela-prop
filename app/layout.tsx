@@ -14,8 +14,8 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: {
-    default: "GOLDKEY Estates | Premium Real Estate",
-    template: "%s | GOLDKEY Estates",
+    default: "Karim Real Estate | Premium Real Estate",
+    template: "%s | Karim Real Estate",
   },
   description:
     "Discover premium apartments, villas, and penthouses curated for modern luxury living.",

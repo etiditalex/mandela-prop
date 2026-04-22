@@ -7,14 +7,14 @@ const COASTAL_LAND =
 export function KarimCoastalIntro() {
   return (
     <section
-      className="relative z-40 -mt-16 w-full bg-brand sm:-mt-20 md:-mt-24 lg:-mt-28"
+      className="relative z-40 -mt-[80px] w-full bg-brand"
       aria-labelledby="karim-coastal-heading"
     >
       {/* Horizontal padding: brand shows at viewport edges; image column has inset so green frames the photo (especially on the left). */}
       <div className="flex w-full flex-col px-5 sm:px-8 md:min-h-[min(40rem,85vh)] md:flex-row md:items-stretch md:px-10 lg:px-12 xl:px-16">
         <div className="relative z-10 w-full shrink-0 bg-brand md:w-[42%] md:max-w-none lg:w-[40%]">
           <div className="p-3 sm:p-4 sm:pl-4 md:p-4 md:pl-7 md:pr-4 md:pt-4 md:pb-5 lg:pl-8 lg:pr-6 lg:py-5 xl:pl-10 xl:pr-7 xl:py-6">
-            <div className="relative -mt-24 sm:-mt-28 md:-mt-32 lg:-mt-40">
+            <div className="relative -mt-[80px]">
               <div className="relative aspect-[3/4] min-h-[16rem] w-full overflow-hidden sm:min-h-[18rem] md:aspect-auto md:min-h-[min(70vh,38rem)]">
                 <Image
                   src={COASTAL_LAND}

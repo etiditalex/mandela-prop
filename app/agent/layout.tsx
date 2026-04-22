@@ -4,7 +4,7 @@ import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminTopBar } from "@/components/admin/AdminTopBar";
 
 export const metadata: Metadata = {
-  title: "Staff dashboard",
+  title: "Karim Real Estate Admin Dashboard",
 };
 
 export default function AgentLayout({ children }: { children: React.ReactNode }) {

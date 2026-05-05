@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { PropertyFilters } from "@/components/property/PropertyFilters";
@@ -11,15 +12,40 @@ import { Property } from "@/types/property";
 const PAGE_SIZE = 4;
 
 export function PropertiesClient({ properties }: { properties: Property[] }) {
+  const searchParams = useSearchParams();
   const [filters, setFilters] = useState(defaultFilters);
   const [page, setPage] = useState(1);
   const uniqueLocations = ["All", ...new Set(properties.map((property) => property.location))];
   const uniquePropertyTypes = ["All", ...new Set(properties.map((property) => property.type))];
 
-  const filteredProperties = useMemo(
-    () => filterProperties(properties, filters),
-    [filters, properties],
-  );
+  const filteredProperties = useMemo(() => {
+    const base = filterProperties(properties, filters);
+    const kind = searchParams?.get("kind"); // sale | rent
+    const statusParam = searchParams?.get("status"); // comma list
+    const loc = searchParams?.get("location");
+    const type = searchParams?.get("type");
+    const minPrice = Number(searchParams?.get("minPrice") ?? "");
+    const maxPrice = Number(searchParams?.get("maxPrice") ?? "");
+    const bedsMin = Number(searchParams?.get("bedsMin") ?? "");
+    const bathsMin = Number(searchParams?.get("bathsMin") ?? "");
+
+    const statuses = (statusParam ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    return base.filter((p) => {
+      if (kind && (p.listingKind ?? "sale") !== kind) return false;
+      if (statuses.length && !statuses.includes(String(p.status ?? "available"))) return false;
+      if (loc && p.location !== loc) return false;
+      if (type && p.type !== type) return false;
+      if (Number.isFinite(minPrice) && !Number.isNaN(minPrice) && p.price < minPrice) return false;
+      if (Number.isFinite(maxPrice) && !Number.isNaN(maxPrice) && p.price > maxPrice) return false;
+      if (Number.isFinite(bedsMin) && !Number.isNaN(bedsMin) && (p.beds ?? 0) < bedsMin) return false;
+      if (Number.isFinite(bathsMin) && !Number.isNaN(bathsMin) && (p.baths ?? 0) < bathsMin) return false;
+      return true;
+    });
+  }, [filters, properties, searchParams]);
   const totalPages = Math.max(1, Math.ceil(filteredProperties.length / PAGE_SIZE));
   const currentPageData = filteredProperties.slice(
     (page - 1) * PAGE_SIZE,

@@ -10,10 +10,16 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Database } from "@/types/database";
+import { Property } from "@/types/property";
 
 type PropertyRow = Database["public"]["Tables"]["properties"]["Row"];
 type PropertyImageRow = Database["public"]["Tables"]["property_images"]["Row"];
 type PropertyWithImagesRow = PropertyRow & { property_images: PropertyImageRow[] | null };
+
+type DemoPropertyRow = Property & {
+  status?: PropertyRow["status"];
+  listingKind?: PropertyRow["listing_kind"];
+};
 
 const residentialPropertyTypes = ["Apartment", "Villa", "Penthouse", "Townhouse"] as const;
 type ResidentialPropertyType = (typeof residentialPropertyTypes)[number];
@@ -48,6 +54,254 @@ function listingStatusClass(status: PropertyRow["status"]) {
   }
 }
 
+async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeoutMessage: string) {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutHandle = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([Promise.resolve(promise), timeoutPromise]);
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
+}
+
+function DemoPropertyEditModal({
+  property,
+  onClose,
+  onCreated,
+}: {
+  property: DemoPropertyRow;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [title, setTitle] = useState(property.title);
+  const [description, setDescription] = useState(property.description);
+  const [location, setLocation] = useState(property.location);
+  const [price, setPrice] = useState(String(property.price));
+  const [bedrooms, setBedrooms] = useState(String(property.beds ?? 0));
+  const [bathrooms, setBathrooms] = useState(String(property.baths ?? 0));
+  const [size, setSize] = useState(String(property.areaSqFt ?? ""));
+  const [residentialType, setResidentialType] = useState<ResidentialPropertyType>(
+    residentialPropertyTypes.includes(property.type as ResidentialPropertyType)
+      ? (property.type as ResidentialPropertyType)
+      : residentialPropertyTypes[0],
+  );
+  const [listingKind, setListingKind] = useState<PropertyRow["listing_kind"]>(
+    property.listingKind ?? "sale",
+  );
+  const [saving, setSaving] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const friendlySupabaseError = (message: string) => {
+    const msg = message.toLowerCase();
+    if (msg.includes("row-level security") || msg.includes("violates row-level security")) {
+      return (
+        "Permission denied by Supabase RLS. Make sure you are logged in with an account whose " +
+        "profile role is 'agent' or 'admin', then try again."
+      );
+    }
+    if (msg.includes("column") && msg.includes("listing_kind") && msg.includes("does not exist")) {
+      return (
+        "Your Supabase DB is missing the `listing_kind` column. Re-run the updated `supabase/schema.sql` " +
+        "(or run: `alter table public.properties add column if not exists listing_kind public.listing_kind not null default 'sale';`)."
+      );
+    }
+    if (msg.includes("foreign key") && msg.includes("agent_id")) {
+      return (
+        "Your profile row may be missing in `public.profiles`. Ensure your signup trigger ran, " +
+        "or create a profile row for this user in Supabase, then try again."
+      );
+    }
+    return message;
+  };
+
+  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setLocalError(null);
+
+    const priceNum = Number(price);
+    const bedroomsNum = Number(bedrooms);
+    const bathroomsNum = Number(bathrooms);
+    if (Number.isNaN(priceNum) || Number.isNaN(bedroomsNum) || Number.isNaN(bathroomsNum)) {
+      setLocalError("Price, bedrooms, and bathrooms must be valid numbers.");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: authData } = await withTimeout(
+        supabase.auth.getUser(),
+        12000,
+        "Cannot reach Supabase (auth request timed out). Check your internet/VPN/firewall and allow *.supabase.co, then refresh and try again.",
+      );
+      if (!authData.user) {
+        setLocalError("Login as agent to create listings.");
+        setSaving(false);
+        return;
+      }
+
+      const titleTrimmed = title.trim();
+      const slug = slugify(titleTrimmed);
+
+      const { data: insertedProperty, error: insertError } = await withTimeout(
+        supabase
+          .from("properties")
+          .insert({
+            title: titleTrimmed,
+            slug,
+            description: description.trim(),
+            price: priceNum,
+            location: location.trim(),
+            property_type: residentialType,
+            bedrooms: bedroomsNum,
+            bathrooms: bathroomsNum,
+            size: String(size),
+            listing_kind: listingKind,
+            status: "available",
+            agent_id: authData.user.id,
+          })
+          .select("id")
+          .single(),
+        20000,
+        "Saving timed out. Check your Supabase connection and try again.",
+      );
+
+      if (insertError) {
+        setLocalError(friendlySupabaseError(insertError.message));
+        setSaving(false);
+        return;
+      }
+
+      if (insertedProperty?.id && property.coverImage) {
+        const { error: imageError } = await withTimeout(
+          supabase.from("property_images").insert({
+            property_id: insertedProperty.id,
+            image_url: property.coverImage,
+            is_primary: true,
+          }),
+          15000,
+          "Image save timed out. The listing may still be created—refresh to confirm.",
+        );
+        if (imageError) {
+          setLocalError(`Listing created, but image failed: ${friendlySupabaseError(imageError.message)}`);
+          setSaving(false);
+          return;
+        }
+      }
+
+      await withTimeout(
+        Promise.resolve(onCreated()),
+        12000,
+        "Saved, but refresh timed out. Click Refresh to reload listings.",
+      );
+    } catch (err) {
+      if (err instanceof Error) {
+        setLocalError(err.message);
+      } else {
+        setLocalError("Unable to create listing from demo property.");
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="Edit demo listing"
+      panelClassName="max-h-[90vh] max-w-2xl overflow-y-auto"
+    >
+      <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+        <label className="grid gap-2 text-sm text-zinc-700" htmlFor="demo_listing_kind">
+          <span className="font-medium">Listing type</span>
+          <select
+            id="demo_listing_kind"
+            value={listingKind}
+            onChange={(event) => setListingKind(event.target.value as PropertyRow["listing_kind"])}
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="sale">For sale</option>
+            <option value="rent">For rent</option>
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm text-zinc-700" htmlFor="demo_property_type">
+          <span className="font-medium">Property type</span>
+          <select
+            id="demo_property_type"
+            value={residentialType}
+            onChange={(event) => setResidentialType(event.target.value as ResidentialPropertyType)}
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          >
+            {residentialPropertyTypes.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
+        </label>
+        <Input id="demo_title" label="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
+        <Input
+          id="demo_location"
+          label="Location"
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          required
+        />
+        <Input id="demo_price" label="Price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
+        <Input
+          id="demo_bedrooms"
+          label="Bedrooms"
+          type="number"
+          value={bedrooms}
+          onChange={(e) => setBedrooms(e.target.value)}
+          required
+        />
+        <Input
+          id="demo_bathrooms"
+          label="Bathrooms"
+          type="number"
+          value={bathrooms}
+          onChange={(e) => setBathrooms(e.target.value)}
+          required
+        />
+        <Input
+          id="demo_size"
+          label="Size (sqft)"
+          type="number"
+          value={size}
+          onChange={(e) => setSize(e.target.value)}
+          required
+        />
+        <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="demo_description">
+          <span className="font-medium">Description</span>
+          <textarea
+            id="demo_description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            required
+            rows={4}
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          />
+        </label>
+        {localError && <p className="md:col-span-2 text-sm text-red-600">{localError}</p>}
+        <div className="flex flex-wrap gap-3 md:col-span-2">
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving..." : "Save & create in database"}
+          </Button>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function PropertyEditModal({
   property,
   onClose,
@@ -60,6 +314,9 @@ function PropertyEditModal({
   const landInitially = isLandType(property.property_type);
   const [listingCategory, setListingCategory] = useState<"property" | "land">(
     landInitially ? "land" : "property",
+  );
+  const [listingKind, setListingKind] = useState<PropertyRow["listing_kind"]>(
+    property.listing_kind ?? "sale",
   );
   const [title, setTitle] = useState(property.title);
   const [description, setDescription] = useState(property.description);
@@ -82,6 +339,13 @@ function PropertyEditModal({
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (listingCategory === "land") {
+      setBedrooms("0");
+      setBathrooms("0");
+    }
+  }, [listingCategory]);
+
   const propertyTypeValue =
     listingCategory === "land" ? landType : residentialType;
 
@@ -91,16 +355,15 @@ function PropertyEditModal({
     setLocalError(null);
 
     const priceNum = Number(price);
-    const bedroomsNum = Number(bedrooms);
-    const bathroomsNum = Number(bathrooms);
-    const sizeNum = Number(size);
+    const bedroomsNum = listingCategory === "land" ? 0 : Number(bedrooms);
+    const bathroomsNum = listingCategory === "land" ? 0 : Number(bathrooms);
+    const sizeStr = size;
     if (
       Number.isNaN(priceNum) ||
-      Number.isNaN(bedroomsNum) ||
-      Number.isNaN(bathroomsNum) ||
-      Number.isNaN(sizeNum)
+      (listingCategory !== "land" && Number.isNaN(bedroomsNum)) ||
+      (listingCategory !== "land" && Number.isNaN(bathroomsNum))
     ) {
-      setLocalError("Price, bedrooms, bathrooms, and size must be valid numbers.");
+      setLocalError("Price, bedrooms, and bathrooms must be valid numbers.");
       setSaving(false);
       return;
     }
@@ -117,8 +380,9 @@ function PropertyEditModal({
           price: priceNum,
           bedrooms: bedroomsNum,
           bathrooms: bathroomsNum,
-          size: sizeNum,
+          size: sizeStr,
           property_type: propertyTypeValue,
+          listing_kind: listingKind,
           status,
         })
         .eq("id", property.id);
@@ -154,6 +418,18 @@ function PropertyEditModal({
           >
             <option value="property">Property</option>
             <option value="land">Land</option>
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm text-zinc-700" htmlFor="edit_listing_kind">
+          <span className="font-medium">Listing type</span>
+          <select
+            id="edit_listing_kind"
+            value={listingKind}
+            onChange={(event) => setListingKind(event.target.value as PropertyRow["listing_kind"])}
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="sale">For sale</option>
+            <option value="rent">For rent</option>
           </select>
         </label>
         <Input id="edit_title" label="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -220,28 +496,33 @@ function PropertyEditModal({
             <option value="rented">Rented</option>
           </select>
         </label>
-        <Input
-          id="edit_bedrooms"
-          label="Bedrooms"
-          type="number"
-          value={bedrooms}
-          onChange={(e) => setBedrooms(e.target.value)}
-          required
-        />
-        <Input
-          id="edit_bathrooms"
-          label="Bathrooms"
-          type="number"
-          value={bathrooms}
-          onChange={(e) => setBathrooms(e.target.value)}
-          required
-        />
+        {listingCategory !== "land" && (
+          <Input
+            id="edit_bedrooms"
+            label="Bedrooms"
+            type="number"
+            value={bedrooms}
+            onChange={(e) => setBedrooms(e.target.value)}
+            required
+          />
+        )}
+        {listingCategory !== "land" && (
+          <Input
+            id="edit_bathrooms"
+            label="Bathrooms"
+            type="number"
+            value={bathrooms}
+            onChange={(e) => setBathrooms(e.target.value)}
+            required
+          />
+        )}
         <Input
           id="edit_size"
-          label="Size (sqft)"
-          type="number"
+          label={listingCategory === "land" ? "Size (e.g., 50*100, quarter, half, acre)" : "Size (sqft)"}
+          type={listingCategory === "land" ? "text" : "number"}
           value={size}
           onChange={(e) => setSize(e.target.value)}
+          placeholder={listingCategory === "land" ? "e.g., 50*100" : ""}
           required
         />
         <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="edit_description">
@@ -277,7 +558,9 @@ export default function AgentPropertiesPage() {
   const [importing, setImporting] = useState(false);
   const [createImages, setCreateImages] = useState<File[]>([]);
   const [editTarget, setEditTarget] = useState<PropertyRow | null>(null);
+  const [demoEditTarget, setDemoEditTarget] = useState<DemoPropertyRow | null>(null);
   const [listingCategory, setListingCategory] = useState<"property" | "land">("property");
+  const [listingKind, setListingKind] = useState<PropertyRow["listing_kind"]>("sale");
   const [selectedPropertyType, setSelectedPropertyType] = useState<ResidentialPropertyType>(
     residentialPropertyTypes[0],
   );
@@ -305,7 +588,7 @@ export default function AgentPropertiesPage() {
       property_type: property.type,
       bedrooms: property.beds,
       bathrooms: property.baths,
-      size: property.areaSqFt,
+      size: String(property.areaSqFt),
       status: "available" as const,
       agent_id: user.id,
     }));
@@ -397,34 +680,28 @@ export default function AgentPropertiesPage() {
     }
   };
 
-  const uploadImagesForProperty = async (propertyId: string, files: File[]) => {
-    if (!files.length) return;
+  const uploadImageForProperty = async (propertyId: string, file: File, isPrimary: boolean) => {
     const supabase = createSupabaseBrowserClient();
+    const extension = file.name.split(".").pop();
+    const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      const extension = file.name.split(".").pop();
-      const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
+    const { error: uploadError } = await supabase.storage
+      .from("property-images")
+      .upload(path, file, { upsert: false });
 
-      const { error: uploadError } = await supabase.storage
-        .from("property-images")
-        .upload(path, file, { upsert: false });
+    if (uploadError) {
+      throw new Error(uploadError.message);
+    }
 
-      if (uploadError) {
-        throw new Error(uploadError.message);
-      }
+    const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
+    const { error: imageError } = await supabase.from("property_images").insert({
+      property_id: propertyId,
+      image_url: publicUrlData.publicUrl,
+      is_primary: isPrimary,
+    });
 
-      const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
-      const { error: imageError } = await supabase.from("property_images").insert({
-        property_id: propertyId,
-        image_url: publicUrlData.publicUrl,
-        // For a newly created listing, make the first uploaded image the primary one.
-        is_primary: index === 0,
-      });
-
-      if (imageError) {
-        throw new Error(imageError.message);
-      }
+    if (imageError) {
+      throw new Error(imageError.message);
     }
   };
 
@@ -454,9 +731,10 @@ export default function AgentPropertiesPage() {
         price: Number(formData.get("price") ?? 0),
         location: String(formData.get("location") ?? ""),
         property_type: propertyType,
-        bedrooms: Number(formData.get("bedrooms") ?? 0),
-        bathrooms: Number(formData.get("bathrooms") ?? 0),
-        size: Number(formData.get("size") ?? 0),
+        bedrooms: listingCategory === "land" ? 0 : Number(formData.get("bedrooms") ?? 0),
+        bathrooms: listingCategory === "land" ? 0 : Number(formData.get("bathrooms") ?? 0),
+        size: String(formData.get("size") ?? ""),
+        listing_kind: listingKind,
         status: "available" as const,
         agent_id: authData.user.id,
       };
@@ -473,11 +751,14 @@ export default function AgentPropertiesPage() {
       }
 
       if (insertedProperty && createImages.length) {
-        await uploadImagesForProperty(insertedProperty.id, createImages);
+        await Promise.all(createImages.map((file, index) => 
+          uploadImageForProperty(insertedProperty.id, file, index === 0)
+        ));
       }
 
       (event.currentTarget as HTMLFormElement).reset();
       setListingCategory("property");
+      setListingKind("sale");
       setSelectedPropertyType(residentialPropertyTypes[0]);
       setSelectedLandType(landCategoryList[0].title);
       setCreateImages([]);
@@ -559,6 +840,17 @@ export default function AgentPropertiesPage() {
           }}
         />
       )}
+      {demoEditTarget && (
+        <DemoPropertyEditModal
+          key={demoEditTarget.id}
+          property={demoEditTarget}
+          onClose={() => setDemoEditTarget(null)}
+          onCreated={() => {
+            void load();
+            setDemoEditTarget(null);
+          }}
+        />
+      )}
 
       <AgentPageHeader
         title="Properties"
@@ -623,15 +915,6 @@ export default function AgentPropertiesPage() {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5 text-white shadow-md">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-300">Information</p>
-        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">
-          When the <code className="rounded bg-white/10 px-1">properties</code> table has rows, the
-          public site uses them. If empty, visitors see sample listings until you add data here or run{" "}
-          <code className="rounded bg-white/10 px-1">seed_featured_residential.sql</code> in Supabase.
-        </p>
-      </div>
-
       <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
             <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
               <div className="mb-6">
@@ -653,6 +936,19 @@ export default function AgentPropertiesPage() {
                   >
                     <option value="property">Property</option>
                     <option value="land">Land</option>
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm text-zinc-700" htmlFor="listing_kind">
+                  <span className="font-medium">Listing type</span>
+                  <select
+                    id="listing_kind"
+                    name="listing_kind"
+                    value={listingKind}
+                    onChange={(event) => setListingKind(event.target.value as PropertyRow["listing_kind"])}
+                    className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="sale">For sale</option>
+                    <option value="rent">For rent</option>
                   </select>
                 </label>
                 <Input id="title" name="title" label="Title" required />
@@ -697,9 +993,20 @@ export default function AgentPropertiesPage() {
                   </label>
                 )}
                 <Input id="price" name="price" type="number" label="Price" required />
-                <Input id="bedrooms" name="bedrooms" type="number" label="Bedrooms" required />
-                <Input id="bathrooms" name="bathrooms" type="number" label="Bathrooms" required />
-                <Input id="size" name="size" type="number" label="Size (sqft)" required />
+                {listingCategory !== "land" && (
+                  <Input id="bedrooms" name="bedrooms" type="number" label="Bedrooms" required />
+                )}
+                {listingCategory !== "land" && (
+                  <Input id="bathrooms" name="bathrooms" type="number" label="Bathrooms" required />
+                )}
+                <Input
+                  id="size"
+                  name="size"
+                  type={listingCategory === "land" ? "text" : "number"}
+                  label={listingCategory === "land" ? "Size (e.g., 50*100, quarter, half, acre)" : "Size (sqft)"}
+                  placeholder={listingCategory === "land" ? "e.g., 50*100" : ""}
+                  required
+                />
                 <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="description">
                   <span className="font-medium">Description</span>
                   <textarea
@@ -761,13 +1068,14 @@ export default function AgentPropertiesPage() {
                       <th className="px-4 py-3 font-medium">Property</th>
                       <th className="px-4 py-3 font-medium">Location</th>
                       <th className="px-4 py-3 font-medium">Type</th>
+                      <th className="px-4 py-3 font-medium">Listing</th>
                       <th className="px-4 py-3 font-medium">Price</th>
                       <th className="px-4 py-3 font-medium">Status</th>
                       <th className="px-4 py-3 text-right font-medium">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {properties.map((property) => (
+                    {(properties.length > 0 ? properties : []).map((property) => (
                       <tr
                         key={property.id}
                         className="border-b border-slate-50 transition hover:bg-slate-50/80"
@@ -791,6 +1099,9 @@ export default function AgentPropertiesPage() {
                         </td>
                         <td className="px-4 py-3 text-slate-600">{property.location}</td>
                         <td className="px-4 py-3 text-slate-600">{property.property_type}</td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {property.listing_kind === "rent" ? "Rental" : "Sale"}
+                        </td>
                         <td className="px-4 py-3 font-medium text-slate-900">
                           KSh {formatListingPrice(Number(property.price))}
                         </td>
@@ -841,15 +1152,90 @@ export default function AgentPropertiesPage() {
                         </td>
                       </tr>
                     ))}
+
+                    {properties.length === 0 &&
+                      demoProperties.map((property) => (
+                        <tr
+                          key={property.id}
+                          className="border-b border-slate-50 bg-slate-50/50 transition hover:bg-slate-50/80"
+                        >
+                          <td className="px-4 py-3">
+                            {property.coverImage ? (
+                              <img
+                                src={property.coverImage}
+                                alt={property.title}
+                                className="h-12 w-16 rounded-md object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="flex h-12 w-16 items-center justify-center rounded-md bg-slate-100 text-[10px] font-medium text-slate-500">
+                                No image
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-semibold text-slate-900">{property.title}</p>
+                            <p className="mt-0.5 text-xs text-slate-500">Demo listing</p>
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">{property.location}</td>
+                          <td className="px-4 py-3 text-slate-600">{property.type}</td>
+                          <td className="px-4 py-3 text-slate-600">Sale</td>
+                          <td className="px-4 py-3 font-medium text-slate-900">
+                            KSh {formatListingPrice(Number(property.price))}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                              demo
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <a
+                                href={`/properties/${property.slug}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded-lg border border-emerald-100 px-2.5 py-1.5 text-xs font-medium text-emerald-700 transition hover:bg-emerald-50"
+                              >
+                                Preview
+                              </a>
+                              <button
+                                type="button"
+                                disabled
+                                className="cursor-not-allowed rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-400 opacity-70"
+                                title="Import frontend listings to manage these."
+                              >
+                                Image
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDemoEditTarget({
+                                    ...property,
+                                    listingKind: "sale",
+                                    status: "available",
+                                  })
+                                }
+                                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                disabled
+                                className="cursor-not-allowed rounded-lg border border-red-100 px-2.5 py-1.5 text-xs font-medium text-red-300 opacity-70"
+                                title="Import frontend listings to manage these."
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
 
-              {properties.length === 0 && (
-                <div className="border-t border-slate-100 px-6 py-14 text-center text-sm text-slate-500">
-                  No properties yet. Add your first listing using the form.
-                </div>
-              )}
+              {properties.length === 0 ? <div className="border-t border-slate-100" /> : null}
             </div>
       </div>
     </div>

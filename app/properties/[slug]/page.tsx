@@ -8,6 +8,11 @@ import { SavePropertyButton } from "@/components/property/SavePropertyButton";
 import { InquiryForm } from "@/components/property/InquiryForm";
 import { getPropertyBySlugFromDb } from "@/services/propertyService";
 import { formatCurrency } from "@/lib/utils";
+import { landCategoryList } from "@/lib/land";
+
+function isLandType(type: string) {
+  return landCategoryList.some((c) => c.title === type);
+}
 
 interface PropertyDetailsPageProps {
   params: {
@@ -63,9 +68,9 @@ export default async function PropertyDetailsPage({ params }: PropertyDetailsPag
           <p className="text-sm uppercase tracking-[0.2em] text-brand">Price</p>
           <p className="text-3xl font-semibold">{formatCurrency(property.price)}</p>
           <ul className="space-y-2 text-sm text-zinc-700">
-            <li>{property.beds} Bedrooms</li>
-            <li>{property.baths} Bathrooms</li>
-            <li>{property.areaSqFt} sqft interior</li>
+            {!isLandType(property.type) && <li>{property.beds} Bedrooms</li>}
+            {!isLandType(property.type) && <li>{property.baths} Bathrooms</li>}
+            <li>{isLandType(property.type) ? property.areaSqFt : `${property.areaSqFt} sqft`} {isLandType(property.type) ? "land" : "interior"}</li>
           </ul>
           <SavePropertyButton propertyId={property.id} />
           <Button className="w-full" variant="outline">

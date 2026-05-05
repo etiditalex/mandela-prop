@@ -40,7 +40,8 @@ export type Database = {
           property_type: string;
           bedrooms: number;
           bathrooms: number;
-          size: number;
+          size: string;
+          listing_kind: "sale" | "rent";
           status: "available" | "sold" | "rented";
           agent_id: string;
           created_at: string;
@@ -55,7 +56,8 @@ export type Database = {
           property_type: string;
           bedrooms?: number;
           bathrooms?: number;
-          size: number;
+          size: string;
+          listing_kind?: "sale" | "rent";
           status?: "available" | "sold" | "rented";
           agent_id: string;
           created_at?: string;
@@ -115,11 +117,52 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["inquiries"]["Insert"]>;
         Relationships: [];
       };
+      listing_leads: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string;
+          phone: string | null;
+          intent: "sell" | "let";
+          title: string;
+          location: string;
+          property_type: string;
+          bedrooms: number;
+          bathrooms: number;
+          price: number;
+          message: string | null;
+          status: "new" | "contacted" | "closed";
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          email: string;
+          phone?: string | null;
+          intent: "sell" | "let";
+          title: string;
+          location: string;
+          property_type: string;
+          bedrooms?: number;
+          bathrooms?: number;
+          price?: number;
+          message?: string | null;
+          status?: "new" | "contacted" | "closed";
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["listing_leads"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
     Enums: {
       app_role: "admin" | "agent" | "client";
+      lead_intent: "sell" | "let";
+      lead_status: "new" | "contacted" | "closed";
+      listing_kind: "sale" | "rent";
       property_status: "available" | "sold" | "rented";
     };
     CompositeTypes: Record<string, never>;

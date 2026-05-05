@@ -10,6 +10,15 @@ begin
   if not exists (select 1 from pg_type where typname = 'property_status') then
     create type public.property_status as enum ('available', 'sold', 'rented');
   end if;
+  if not exists (select 1 from pg_type where typname = 'listing_kind') then
+    create type public.listing_kind as enum ('sale', 'rent');
+  end if;
+  if not exists (select 1 from pg_type where typname = 'lead_intent') then
+    create type public.lead_intent as enum ('sell', 'let');
+  end if;
+  if not exists (select 1 from pg_type where typname = 'lead_status') then
+    create type public.lead_status as enum ('new', 'contacted', 'closed');
+  end if;
 end $$;
 
 -- Profiles
@@ -33,11 +42,16 @@ create table if not exists public.properties (
   property_type text not null,
   bedrooms integer not null default 0 check (bedrooms >= 0),
   bathrooms integer not null default 0 check (bathrooms >= 0),
-  size numeric(12,2) not null check (size >= 0),
+  size text not null,
+  listing_kind public.listing_kind not null default 'sale',
   status public.property_status not null default 'available',
   agent_id uuid not null references public.profiles(id) on delete restrict,
   created_at timestamptz not null default now()
 );
+
+-- Backfill/migrate existing databases where `properties` already exists.
+alter table public.properties
+  add column if not exists listing_kind public.listing_kind not null default 'sale';
 
 -- Property Images
 create table if not exists public.property_images (
@@ -66,13 +80,35 @@ create table if not exists public.inquiries (
   created_at timestamptz not null default now()
 );
 
+-- Sell / Let leads (agents can submit property leads)
+create table if not exists public.listing_leads (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  email text not null,
+  phone text,
+  intent public.lead_intent not null,
+  title text not null,
+  location text not null,
+  property_type text not null,
+  bedrooms integer not null default 0 check (bedrooms >= 0),
+  bathrooms integer not null default 0 check (bathrooms >= 0),
+  price numeric(14,2) not null default 0 check (price >= 0),
+  message text,
+  status public.lead_status not null default 'new',
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 -- Indexes
 create index if not exists idx_properties_status on public.properties(status);
+create index if not exists idx_properties_listing_kind on public.properties(listing_kind);
 create index if not exists idx_properties_agent_id on public.properties(agent_id);
 create index if not exists idx_properties_location on public.properties(location);
 create index if not exists idx_property_images_property_id on public.property_images(property_id);
 create index if not exists idx_saved_properties_user_id on public.saved_properties(user_id);
 create index if not exists idx_inquiries_property_id on public.inquiries(property_id);
+create index if not exists idx_listing_leads_status on public.listing_leads(status);
+create index if not exists idx_listing_leads_created_at on public.listing_leads(created_at);
 
 -- Helper function to fetch current user role
 create or replace function public.current_user_role()
@@ -123,6 +159,7 @@ alter table public.properties enable row level security;
 alter table public.property_images enable row level security;
 alter table public.saved_properties enable row level security;
 alter table public.inquiries enable row level security;
+alter table public.listing_leads enable row level security;
 
 -- Profiles policies
 drop policy if exists "profiles_public_agent_view" on public.profiles;
@@ -282,6 +319,29 @@ for all
 to authenticated
 using (public.current_user_role() = 'admin')
 with check (public.current_user_role() = 'admin');
+
+-- Listing leads policies
+drop policy if exists "listing_leads_public_insert" on public.listing_leads;
+create policy "listing_leads_public_insert"
+on public.listing_leads
+for insert
+to anon, authenticated
+with check (true);
+
+drop policy if exists "listing_leads_agent_admin_read" on public.listing_leads;
+create policy "listing_leads_agent_admin_read"
+on public.listing_leads
+for select
+to authenticated
+using (public.current_user_role() in ('agent', 'admin'));
+
+drop policy if exists "listing_leads_admin_update" on public.listing_leads;
+create policy "listing_leads_admin_update"
+on public.listing_leads
+for update
+to authenticated
+using (public.current_user_role() in ('agent', 'admin'))
+with check (public.current_user_role() in ('agent', 'admin'));
 
 -- Storage policies
 drop policy if exists "property_images_public_download" on storage.objects;

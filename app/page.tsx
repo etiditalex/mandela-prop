@@ -5,8 +5,6 @@ import { ArrowRight } from "lucide-react";
 import { FutureRealEstateCta } from "@/components/home/FutureRealEstateCta";
 import { KarimCoastalIntro } from "@/components/home/KarimCoastalIntro";
 import { PortfolioServicesBand } from "@/components/home/PortfolioServicesBand";
-import { PublicNavDesktopPill } from "@/components/layout/PublicNavDesktopPill";
-import { PublicNavMobile } from "@/components/layout/PublicNavMobile";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
@@ -23,8 +21,6 @@ export default async function Home() {
   return (
     <div>
       <section className="relative md:hidden">
-        <PublicNavMobile variant="home" />
-
         <div className="relative isolate min-h-[100svh] w-full">
           <Image
             src={HERO_GREEN_LAND}
@@ -71,8 +67,6 @@ export default async function Home() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
 
           <div className="relative z-10 mx-auto flex min-h-[100vh] w-full max-w-7xl flex-col px-4 pb-14 pt-4 sm:px-6 sm:pb-16 sm:pt-8 lg:px-10 lg:pb-20 lg:pt-10">
-            <PublicNavDesktopPill variant="hero" />
-
             <div className="flex flex-1 items-center pt-10 sm:pt-12">
               <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
                 <div className="max-w-lg space-y-4 sm:space-y-5">

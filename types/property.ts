@@ -13,13 +13,14 @@ export interface Property {
   location: string;
   beds: number;
   baths: number;
-  areaSqFt: number;
+  areaSqFt: number | string;
   description: string;
   features: string[];
   amenities: PropertyAmenity[];
   coverImage: string;
   gallery: string[];
   featured?: boolean;
+  listingKind?: "sale" | "rent";
   status?: "available" | "sold" | "rented";
   agentId?: string;
 }

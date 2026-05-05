@@ -8,6 +8,11 @@ import { Property } from "@/types/property";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/lib/utils";
+import { landCategoryList } from "@/lib/land";
+
+function isLandType(type: string) {
+  return landCategoryList.some((c) => c.title === type);
+}
 import { useSavedProperties } from "@/hooks/useSavedProperties";
 
 export function PropertyCard({ property }: { property: Property }) {
@@ -45,17 +50,21 @@ export function PropertyCard({ property }: { property: Property }) {
           <p className="mt-1 text-sm text-zinc-600">{property.location}</p>
         </div>
         <div className="flex items-center gap-4 text-xs text-zinc-600">
-          <span className="inline-flex items-center gap-1">
-            <BedDouble size={14} />
-            {property.beds} Beds
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Bath size={14} />
-            {property.baths} Baths
-          </span>
+          {!isLandType(property.type) && (
+            <span className="inline-flex items-center gap-1">
+              <BedDouble size={14} />
+              {property.beds} Beds
+            </span>
+          )}
+          {!isLandType(property.type) && (
+            <span className="inline-flex items-center gap-1">
+              <Bath size={14} />
+              {property.baths} Baths
+            </span>
+          )}
           <span className="inline-flex items-center gap-1">
             <Ruler size={14} />
-            {property.areaSqFt} sqft
+            {isLandType(property.type) ? property.areaSqFt : `${property.areaSqFt} sqft`}
           </span>
         </div>
         <Link href={`/properties/${property.slug}`} aria-label={`View ${property.title}`}>

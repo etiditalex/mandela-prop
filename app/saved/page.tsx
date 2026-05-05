@@ -40,7 +40,7 @@ export default function SavedPropertiesPage() {
             location: item.location,
             beds: item.bedrooms,
             baths: item.bathrooms,
-            areaSqFt: Number(item.size),
+            areaSqFt: item.size,
             description: item.description,
             features: [],
             amenities: [],

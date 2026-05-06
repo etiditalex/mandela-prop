@@ -636,18 +636,7 @@ export default function AgentPropertiesPage() {
     void load();
   }, []);
 
-  const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string) => {
-    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-    const timeoutPromise = new Promise<T>((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
-    });
-
-    try {
-      return await Promise.race([promise, timeoutPromise]);
-    } finally {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-    }
-  };
+  // (uses the file-level `withTimeout` helper)
 
   const onImportFrontendListings = async () => {
     setError(null);
@@ -713,7 +702,11 @@ export default function AgentPropertiesPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data: authData } = await supabase.auth.getUser();
+      const { data: authData } = await withTimeout(
+        supabase.auth.getUser(),
+        12000,
+        "Creating timed out while checking your session. Check your internet/VPN/firewall and try again.",
+      );
       if (!authData.user) {
         setError("Login as agent to create listings.");
         setCreating(false);
@@ -739,11 +732,11 @@ export default function AgentPropertiesPage() {
         agent_id: authData.user.id,
       };
 
-      const { data: insertedProperty, error: insertError } = await supabase
-        .from("properties")
-        .insert(payload)
-        .select("id")
-        .single();
+      const { data: insertedProperty, error: insertError } = await withTimeout(
+        supabase.from("properties").insert(payload).select("id").single(),
+        20000,
+        "Creating timed out while saving the listing. Check your Supabase connection and try again.",
+      );
       if (insertError) {
         setError(insertError.message);
         setCreating(false);
@@ -751,9 +744,15 @@ export default function AgentPropertiesPage() {
       }
 
       if (insertedProperty && createImages.length) {
-        await Promise.all(createImages.map((file, index) => 
-          uploadImageForProperty(insertedProperty.id, file, index === 0)
-        ));
+        await withTimeout(
+          Promise.all(
+            createImages.map((file, index) =>
+              uploadImageForProperty(insertedProperty.id, file, index === 0),
+            ),
+          ),
+          45000,
+          "Creating timed out while uploading images. The listing may be created—refresh to confirm.",
+        );
       }
 
       (event.currentTarget as HTMLFormElement).reset();
@@ -762,7 +761,7 @@ export default function AgentPropertiesPage() {
       setSelectedPropertyType(residentialPropertyTypes[0]);
       setSelectedLandType(landCategoryList[0].title);
       setCreateImages([]);
-      await load();
+      await withTimeout(load(), 12000, "Created, but refresh timed out. Click Refresh to reload.");
     } catch (createError) {
       if (createError instanceof Error) {
         setError(createError.message);

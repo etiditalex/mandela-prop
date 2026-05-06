@@ -67,6 +67,41 @@ function friendlySupabaseError(message: string) {
   return message;
 }
 
+async function getAuthenticatedUserOrThrow() {
+  const supabase = createSupabaseBrowserClient();
+
+  // `getSession()` should usually be instant (local), but on some environments it can be slow.
+  // Give it more time, then fall back to `getUser()` as a second attempt.
+  try {
+    const { data: sessionData, error: sessionError } = await withTimeout(
+      supabase.auth.getSession(),
+      8000,
+      "Session lookup timed out",
+    );
+    if (sessionError) {
+      throw sessionError;
+    }
+    const userFromSession = sessionData.session?.user ?? null;
+    if (userFromSession) return userFromSession;
+  } catch {
+    // ignore and fall back below
+  }
+
+  const { data: userData, error: userError } = await withTimeout(
+    supabase.auth.getUser(),
+    12000,
+    "User lookup timed out",
+  );
+  if (userError) {
+    throw new Error(userError.message);
+  }
+  const user = userData.user ?? null;
+  if (!user) {
+    throw new Error("You are not logged in. Please sign in again.");
+  }
+  return user;
+}
+
 function listingStatusClass(status: PropertyRow["status"]) {
   switch (status) {
     case "available":
@@ -136,17 +171,7 @@ function DemoPropertyEditModal({
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data: sessionData } = await withTimeout(
-        supabase.auth.getSession(),
-        2000,
-        "Your session could not be read. Please refresh and sign in again.",
-      );
-      const user = sessionData.session?.user ?? null;
-      if (!user) {
-        setLocalError("Login as agent to create listings.");
-        setSaving(false);
-        return;
-      }
+      const user = await getAuthenticatedUserOrThrow();
 
       const titleTrimmed = title.trim();
       if (titleTrimmed.length < 3) {
@@ -743,18 +768,7 @@ export default function AgentPropertiesPage() {
     const formData = new FormData(event.currentTarget);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: sessionData } = await withTimeout(
-        supabase.auth.getSession(),
-        2000,
-        "Your session could not be read. Please refresh and sign in again.",
-      );
-      const user = sessionData.session?.user ?? null;
-      if (!user) {
-        setError("Login as agent to create listings.");
-        setCreating(false);
-        return;
-      }
+      const user = await getAuthenticatedUserOrThrow();
 
       const title = String(formData.get("title") ?? "").trim();
       if (title.length < 3) {

@@ -133,12 +133,13 @@ function DemoPropertyEditModal({
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data: authData } = await withTimeout(
-        supabase.auth.getUser(),
-        12000,
-        "Cannot reach Supabase (auth request timed out). Check your internet/VPN/firewall and allow *.supabase.co, then refresh and try again.",
+      const { data: sessionData } = await withTimeout(
+        supabase.auth.getSession(),
+        2000,
+        "Your session could not be read. Please refresh and sign in again.",
       );
-      if (!authData.user) {
+      const user = sessionData.session?.user ?? null;
+      if (!user) {
         setLocalError("Login as agent to create listings.");
         setSaving(false);
         return;
@@ -162,7 +163,7 @@ function DemoPropertyEditModal({
             size: String(size),
             listing_kind: listingKind,
             status: "available",
-            agent_id: authData.user.id,
+            agent_id: user.id,
           })
           .select("id")
           .single(),
@@ -570,12 +571,10 @@ export default function AgentPropertiesPage() {
 
   const seedFrontendProperties = async () => {
     const supabase = createSupabaseBrowserClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    const { data: sessionData } = await supabase.auth.getSession();
+    const user = sessionData.session?.user ?? null;
 
-    if (userError || !user) {
+    if (!user) {
       throw new Error("Login required to import frontend properties.");
     }
 
@@ -702,12 +701,13 @@ export default function AgentPropertiesPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data: authData } = await withTimeout(
-        supabase.auth.getUser(),
-        12000,
-        "Creating timed out while checking your session. Check your internet/VPN/firewall and try again.",
+      const { data: sessionData } = await withTimeout(
+        supabase.auth.getSession(),
+        2000,
+        "Your session could not be read. Please refresh and sign in again.",
       );
-      if (!authData.user) {
+      const user = sessionData.session?.user ?? null;
+      if (!user) {
         setError("Login as agent to create listings.");
         setCreating(false);
         return;
@@ -729,7 +729,7 @@ export default function AgentPropertiesPage() {
         size: String(formData.get("size") ?? ""),
         listing_kind: listingKind,
         status: "available" as const,
-        agent_id: authData.user.id,
+        agent_id: user.id,
       };
 
       const { data: insertedProperty, error: insertError } = await withTimeout(

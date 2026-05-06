@@ -41,6 +41,32 @@ function formatListingPrice(value: number) {
   return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
 }
 
+function friendlySupabaseError(message: string) {
+  const msg = message.toLowerCase();
+  if (msg.includes("row-level security") || msg.includes("violates row-level security")) {
+    return (
+      "Permission denied by Supabase RLS. Make sure you are logged in with an account whose " +
+      "profile role is 'agent' or 'admin', then try again."
+    );
+  }
+  if (msg.includes("foreign key") && msg.includes("agent_id")) {
+    return (
+      "Your staff profile is missing in `public.profiles`. Ensure the signup trigger created it, " +
+      "or insert a profile row for this user in Supabase, then try again."
+    );
+  }
+  if (msg.includes("duplicate key") && msg.includes("properties_slug_key")) {
+    return "A property with the same title/slug already exists. Try a slightly different title.";
+  }
+  if (msg.includes("bucket") && msg.includes("property-images")) {
+    return (
+      "Image upload is not configured in Supabase Storage. Ensure the `property-images` bucket exists " +
+      "and the storage policies from `supabase/schema.sql` are applied."
+    );
+  }
+  return message;
+}
+
 function listingStatusClass(status: PropertyRow["status"]) {
   switch (status) {
     case "available":
@@ -94,29 +120,6 @@ function DemoPropertyEditModal({
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const friendlySupabaseError = (message: string) => {
-    const msg = message.toLowerCase();
-    if (msg.includes("row-level security") || msg.includes("violates row-level security")) {
-      return (
-        "Permission denied by Supabase RLS. Make sure you are logged in with an account whose " +
-        "profile role is 'agent' or 'admin', then try again."
-      );
-    }
-    if (msg.includes("column") && msg.includes("listing_kind") && msg.includes("does not exist")) {
-      return (
-        "Your Supabase DB is missing the `listing_kind` column. Re-run the updated `supabase/schema.sql` " +
-        "(or run: `alter table public.properties add column if not exists listing_kind public.listing_kind not null default 'sale';`)."
-      );
-    }
-    if (msg.includes("foreign key") && msg.includes("agent_id")) {
-      return (
-        "Your profile row may be missing in `public.profiles`. Ensure your signup trigger ran, " +
-        "or create a profile row for this user in Supabase, then try again."
-      );
-    }
-    return message;
-  };
-
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
@@ -146,6 +149,16 @@ function DemoPropertyEditModal({
       }
 
       const titleTrimmed = title.trim();
+      if (titleTrimmed.length < 3) {
+        setLocalError("Title must be at least 3 characters.");
+        setSaving(false);
+        return;
+      }
+      if (description.trim().length < 10) {
+        setLocalError("Description must be at least 10 characters.");
+        setSaving(false);
+        return;
+      }
       const slug = slugify(titleTrimmed);
 
       const { data: insertedProperty, error: insertError } = await withTimeout(
@@ -670,7 +683,7 @@ export default function AgentPropertiesPage() {
 
   const uploadImageForProperty = async (propertyId: string, file: File, isPrimary: boolean) => {
     const supabase = createSupabaseBrowserClient();
-    const extension = file.name.split(".").pop();
+    const extension = file.name.split(".").pop() || "jpg";
     const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await supabase.storage
@@ -678,7 +691,7 @@ export default function AgentPropertiesPage() {
       .upload(path, file, { upsert: false });
 
     if (uploadError) {
-      throw new Error(uploadError.message);
+      throw new Error(friendlySupabaseError(uploadError.message));
     }
 
     const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
@@ -689,14 +702,44 @@ export default function AgentPropertiesPage() {
     });
 
     if (imageError) {
-      throw new Error(imageError.message);
+      throw new Error(friendlySupabaseError(imageError.message));
     }
+  };
+
+  const insertPropertyWithUniqueSlug = async (payload: Database["public"]["Tables"]["properties"]["Insert"]) => {
+    const supabase = createSupabaseBrowserClient();
+    const baseSlug = payload.slug;
+    const maxAttempts = 6;
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
+      const { data, error: insertError } = await supabase
+        .from("properties")
+        .insert({ ...payload, slug })
+        .select("id, slug")
+        .single();
+
+      if (!insertError) return data;
+
+      const code = (insertError as unknown as { code?: string }).code;
+      const isUniqueViolation =
+        code === "23505" ||
+        insertError.message.toLowerCase().includes("duplicate key") ||
+        insertError.message.toLowerCase().includes("properties_slug_key");
+
+      if (!isUniqueViolation) {
+        throw new Error(friendlySupabaseError(insertError.message));
+      }
+    }
+
+    throw new Error("Could not generate a unique URL slug for this property. Try a different title.");
   };
 
   const onCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCreating(true);
     setError(null);
+    setMessage(null);
     const formData = new FormData(event.currentTarget);
 
     try {
@@ -713,46 +756,89 @@ export default function AgentPropertiesPage() {
         return;
       }
 
-      const title = String(formData.get("title") ?? "");
+      const title = String(formData.get("title") ?? "").trim();
+      if (title.length < 3) {
+        setError("Title must be at least 3 characters.");
+        setCreating(false);
+        return;
+      }
       const slug = slugify(title);
       const propertyType =
         listingCategory === "land" ? selectedLandType : selectedPropertyType;
+      const description = String(formData.get("description") ?? "").trim();
+      if (description.length < 10) {
+        setError("Description must be at least 10 characters.");
+        setCreating(false);
+        return;
+      }
+      const location = String(formData.get("location") ?? "").trim();
+      if (location.length < 2) {
+        setError("Location is required.");
+        setCreating(false);
+        return;
+      }
+      const priceNum = Number(formData.get("price") ?? 0);
+      if (!Number.isFinite(priceNum) || priceNum < 0) {
+        setError("Price must be a valid non-negative number.");
+        setCreating(false);
+        return;
+      }
+
+      const bedroomsNum = listingCategory === "land" ? 0 : Number(formData.get("bedrooms") ?? 0);
+      const bathroomsNum = listingCategory === "land" ? 0 : Number(formData.get("bathrooms") ?? 0);
+      if (
+        listingCategory !== "land" &&
+        (!Number.isFinite(bedroomsNum) || bedroomsNum < 0 || !Number.isFinite(bathroomsNum) || bathroomsNum < 0)
+      ) {
+        setError("Bedrooms and bathrooms must be valid non-negative numbers.");
+        setCreating(false);
+        return;
+      }
+
       const payload = {
         title,
         slug,
-        description: String(formData.get("description") ?? ""),
-        price: Number(formData.get("price") ?? 0),
-        location: String(formData.get("location") ?? ""),
+        description,
+        price: priceNum,
+        location,
         property_type: propertyType,
-        bedrooms: listingCategory === "land" ? 0 : Number(formData.get("bedrooms") ?? 0),
-        bathrooms: listingCategory === "land" ? 0 : Number(formData.get("bathrooms") ?? 0),
+        bedrooms: bedroomsNum,
+        bathrooms: bathroomsNum,
         size: String(formData.get("size") ?? ""),
         listing_kind: listingKind,
         status: "available" as const,
         agent_id: user.id,
       };
 
-      const { data: insertedProperty, error: insertError } = await withTimeout(
-        supabase.from("properties").insert(payload).select("id").single(),
+      const insertedProperty = await withTimeout(
+        insertPropertyWithUniqueSlug(payload),
         20000,
         "Creating timed out while saving the listing. Check your Supabase connection and try again.",
       );
-      if (insertError) {
-        setError(insertError.message);
-        setCreating(false);
-        return;
-      }
 
       if (insertedProperty && createImages.length) {
+        const failures: string[] = [];
         await withTimeout(
-          Promise.all(
-            createImages.map((file, index) =>
-              uploadImageForProperty(insertedProperty.id, file, index === 0),
-            ),
-          ),
+          (async () => {
+            for (let index = 0; index < createImages.length; index += 1) {
+              const file = createImages[index];
+              try {
+                // Ensure at least one image is primary.
+                await uploadImageForProperty(insertedProperty.id, file, index === 0);
+              } catch (err) {
+                failures.push(err instanceof Error ? err.message : "An image failed to upload.");
+              }
+            }
+          })(),
           45000,
           "Creating timed out while uploading images. The listing may be created—refresh to confirm.",
         );
+
+        if (failures.length > 0) {
+          setMessage(
+            `Property created, but ${failures.length} image(s) failed to upload. You can add them from the inventory list.`,
+          );
+        }
       }
 
       (event.currentTarget as HTMLFormElement).reset();
@@ -762,9 +848,12 @@ export default function AgentPropertiesPage() {
       setSelectedLandType(landCategoryList[0].title);
       setCreateImages([]);
       await withTimeout(load(), 12000, "Created, but refresh timed out. Click Refresh to reload.");
+      if (!message) {
+        setMessage("Property created successfully.");
+      }
     } catch (createError) {
       if (createError instanceof Error) {
-        setError(createError.message);
+        setError(friendlySupabaseError(createError.message));
       } else {
         setError("Unable to create property.");
       }
@@ -777,7 +866,7 @@ export default function AgentPropertiesPage() {
     const supabase = createSupabaseBrowserClient();
     const { error: deleteError } = await supabase.from("properties").delete().eq("id", id);
     if (deleteError) {
-      setError(deleteError.message);
+      setError(friendlySupabaseError(deleteError.message));
       return;
     }
     await load();
@@ -785,7 +874,7 @@ export default function AgentPropertiesPage() {
 
   const onUploadImage = async (propertyId: string, file: File) => {
     const supabase = createSupabaseBrowserClient();
-    const extension = file.name.split(".").pop();
+    const extension = file.name.split(".").pop() || "jpg";
     const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await supabase.storage
@@ -795,7 +884,7 @@ export default function AgentPropertiesPage() {
       });
 
     if (uploadError) {
-      setError(uploadError.message);
+      setError(friendlySupabaseError(uploadError.message));
       return;
     }
 
@@ -810,7 +899,7 @@ export default function AgentPropertiesPage() {
     });
 
     if (imageError) {
-      setError(imageError.message);
+      setError(friendlySupabaseError(imageError.message));
       return;
     }
     await load();

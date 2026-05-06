@@ -9,11 +9,28 @@ import { useProfileRole } from "@/hooks/useProfileRole";
 export function AdminTopBar() {
   const { displayName, role, ready, authUnavailable } = useProfileRole();
 
+  const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number) => {
+    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+    const timeoutPromise = new Promise<T>((_, reject) => {
+      timeoutHandle = setTimeout(() => reject(new Error("timeout")), timeoutMs);
+    });
+    try {
+      return await Promise.race([Promise.resolve(promise), timeoutPromise]);
+    } finally {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+    }
+  };
+
   const onLogout = async () => {
     if (authUnavailable) return;
     const supabase = createSupabaseBrowserClient();
-    await supabase.auth.signOut();
-    window.location.href = "/";
+    try {
+      await withTimeout(supabase.auth.signOut({ scope: "local" }), 4000);
+    } catch {
+      // ignore and still redirect
+    } finally {
+      window.location.href = "/";
+    }
   };
 
   return (

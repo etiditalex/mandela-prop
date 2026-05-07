@@ -43,6 +43,9 @@ function friendlySupabaseError(message: string) {
       "Upload failed (network/CORS/proxy). Try again on a stable connection, disable VPN/proxy/adblock for Supabase, and ensure Supabase Storage is enabled."
     );
   }
+  if (msg.includes("duplicate key") && msg.includes("properties_slug_key")) {
+    return "A property with the same title/slug already exists. Try a slightly different title.";
+  }
   if (msg.includes("row-level security") || msg.includes("violates row-level security")) {
     return "Permission denied by Supabase RLS. Make sure your profile role is 'agent' or 'admin'.";
   }

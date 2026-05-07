@@ -45,8 +45,8 @@ function friendlySupabaseError(message: string) {
   }
   if (msg.includes("invalid input syntax for type numeric")) {
     return (
-      "Monthly rent, bedrooms, and bathrooms must be numbers only (e.g. 45000). " +
-      "If you typed commas/spaces (e.g. 45,000), remove them."
+      "A numeric field was rejected by the database. " +
+      "Confirm rent/bedrooms/bathrooms are plain numbers (e.g. 45000), then try again."
     );
   }
   if (msg.includes("duplicate key") && msg.includes("properties_slug_key")) {

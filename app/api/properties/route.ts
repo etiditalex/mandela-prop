@@ -89,6 +89,16 @@ export async function POST(req: Request) {
   const listing_kind = body.listing_kind === "rent" ? "rent" : "sale";
   const status = body.status === "sold" ? "sold" : body.status === "rented" ? "rented" : "available";
 
+  if (typeof body.price === "string" && body.price.trim() === "") {
+    return NextResponse.json({ error: "Price is required.", code: "VALIDATION_PRICE_EMPTY" }, { status: 400 });
+  }
+  if (typeof body.bedrooms === "string" && body.bedrooms.trim() === "") {
+    return NextResponse.json({ error: "Bedrooms is required.", code: "VALIDATION_BEDROOMS_EMPTY" }, { status: 400 });
+  }
+  if (typeof body.bathrooms === "string" && body.bathrooms.trim() === "") {
+    return NextResponse.json({ error: "Bathrooms is required.", code: "VALIDATION_BATHROOMS_EMPTY" }, { status: 400 });
+  }
+
   const price = parseNumeric(body.price);
   const bedrooms = parseNumeric(body.bedrooms ?? 0);
   const bathrooms = parseNumeric(body.bathrooms ?? 0);
@@ -185,6 +195,17 @@ export async function PATCH(req: Request) {
   const size = String(body.size ?? "").trim();
   const listing_kind = body.listing_kind === "rent" ? "rent" : "sale";
   const status = body.status === "sold" ? "sold" : body.status === "rented" ? "rented" : "available";
+
+  if (typeof body.price === "string" && body.price.trim() === "") {
+    return NextResponse.json({ error: "Price is required.", code: "VALIDATION_PRICE_EMPTY" }, { status: 400 });
+  }
+  if (typeof body.bedrooms === "string" && body.bedrooms.trim() === "") {
+    return NextResponse.json({ error: "Bedrooms is required.", code: "VALIDATION_BEDROOMS_EMPTY" }, { status: 400 });
+  }
+  if (typeof body.bathrooms === "string" && body.bathrooms.trim() === "") {
+    return NextResponse.json({ error: "Bathrooms is required.", code: "VALIDATION_BATHROOMS_EMPTY" }, { status: 400 });
+  }
+
   const price = parseNumeric(body.price);
   const bedrooms = parseNumeric(body.bedrooms ?? 0);
   const bathrooms = parseNumeric(body.bathrooms ?? 0);

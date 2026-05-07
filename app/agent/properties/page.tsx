@@ -118,6 +118,18 @@ async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeou
   }
 }
 
+function assertImageAcceptable(file: File) {
+  const maxBytes = 12 * 1024 * 1024; // 12MB
+  if (file.size > maxBytes) {
+    throw new Error(
+      `Image is too large (${Math.ceil(file.size / (1024 * 1024))}MB). Please upload an image under 12MB.`,
+    );
+  }
+  if (!file.type.startsWith("image/")) {
+    throw new Error("Only image files are supported.");
+  }
+}
+
 function DemoPropertyEditModal({
   property,
   onClose,
@@ -348,10 +360,12 @@ function PropertyEditModal({
   property,
   onClose,
   onSaved,
+  onRefresh,
 }: {
-  property: PropertyRow;
+  property: PropertyWithImagesRow;
   onClose: () => void;
   onSaved: () => void;
+  onRefresh: () => void;
 }) {
   const landInitially = isLandType(property.property_type);
   const [listingCategory, setListingCategory] = useState<"property" | "land">(
@@ -380,6 +394,65 @@ function PropertyEditModal({
   );
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const images = (property.property_images ?? [])
+    .slice()
+    .sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+
+  const onUploadEditImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setLocalError(null);
+    setUploadingImage(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      for (let index = 0; index < files.length; index += 1) {
+        const file = files[index];
+        assertImageAcceptable(file);
+        const extension = file.name.split(".").pop() || "jpg";
+        const path = `${property.id}/${crypto.randomUUID()}.${extension}`;
+
+        const { error: uploadError } = await withTimeout(
+          supabase.storage.from("property-images").upload(path, file, { upsert: false }),
+          120000,
+          "Image upload is taking too long. Try again, or refresh and add images later.",
+        );
+
+        if (uploadError) {
+          throw new Error(friendlySupabaseError(uploadError.message));
+        }
+
+        const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
+        const { error: imageError } = await withTimeout<{
+          data: unknown;
+          error: { message: string } | null;
+        }>(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).from("property_images").insert({
+            property_id: property.id,
+            image_url: publicUrlData.publicUrl,
+            is_primary: images.length === 0 && index === 0,
+          }),
+          20000,
+          "Image save timed out. Refresh and try again.",
+        );
+
+        if (imageError) {
+          throw new Error(friendlySupabaseError(imageError.message));
+        }
+      }
+
+      await withTimeout(
+        Promise.resolve(onRefresh()),
+        15000,
+        "Uploaded, but refresh timed out. Click Refresh to reload.",
+      );
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Unable to upload image.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   useEffect(() => {
     if (listingCategory === "land") {
@@ -459,6 +532,51 @@ function PropertyEditModal({
       panelClassName="max-h-[90vh] max-w-2xl overflow-y-auto"
     >
       <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
+        <div className="md:col-span-2 space-y-3 rounded-xl border border-slate-100 bg-slate-50/40 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Images</p>
+              <p className="text-xs text-slate-500">Upload and manage listing photos.</p>
+            </div>
+            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60">
+              {uploadingImage ? "Uploading..." : "Add images"}
+              <input
+                className="hidden"
+                type="file"
+                accept="image/*"
+                multiple
+                disabled={uploadingImage}
+                onChange={(event) => void onUploadEditImages(event.target.files)}
+              />
+            </label>
+          </div>
+
+          {images.length > 0 ? (
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+              {images.map((img) => (
+                <div
+                  key={img.id}
+                  className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white"
+                >
+                  <img
+                    src={img.image_url ?? ""}
+                    alt="Property"
+                    className="h-20 w-full object-cover"
+                    loading="lazy"
+                  />
+                  {img.is_primary ? (
+                    <span className="absolute left-2 top-2 rounded-full bg-blue-600/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                      Primary
+                    </span>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">No images yet. Add one or more images above.</p>
+          )}
+        </div>
+
         <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="edit_listing_category">
           <span className="font-medium">Listing category</span>
           <select
@@ -608,7 +726,7 @@ export default function AgentPropertiesPage() {
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const [createImages, setCreateImages] = useState<File[]>([]);
-  const [editTarget, setEditTarget] = useState<PropertyRow | null>(null);
+  const [editTarget, setEditTarget] = useState<PropertyWithImagesRow | null>(null);
   const [demoEditTarget, setDemoEditTarget] = useState<DemoPropertyRow | null>(null);
   const [listingCategory, setListingCategory] = useState<"property" | "land">("property");
   const [listingKind, setListingKind] = useState<PropertyRow["listing_kind"]>("sale");
@@ -739,14 +857,15 @@ export default function AgentPropertiesPage() {
   };
 
   const uploadImageForProperty = async (propertyId: string, file: File, isPrimary: boolean) => {
+    assertImageAcceptable(file);
     const supabase = createSupabaseBrowserClient();
     const extension = file.name.split(".").pop() || "jpg";
     const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await withTimeout(
       supabase.storage.from("property-images").upload(path, file, { upsert: false }),
-      45000,
-      "Image upload timed out. The listing is created—refresh and add images from the inventory list.",
+      120000,
+      "Image upload is taking too long. The listing is created—refresh and add images from the inventory list.",
     );
 
     if (uploadError) {
@@ -898,7 +1017,7 @@ export default function AgentPropertiesPage() {
                   }
                 }
               })(),
-              180000,
+              420000,
               "Image uploads are taking too long. You can refresh and add images from the inventory list.",
             );
           } catch (err) {
@@ -971,14 +1090,15 @@ export default function AgentPropertiesPage() {
 
   const onUploadImage = async (propertyId: string, file: File) => {
     try {
+      assertImageAcceptable(file);
       const supabase = createSupabaseBrowserClient();
       const extension = file.name.split(".").pop() || "jpg";
       const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadError } = await withTimeout(
         supabase.storage.from("property-images").upload(path, file, { upsert: false }),
-        45000,
-        "Image upload timed out. Try again, or refresh and add images later.",
+        120000,
+        "Image upload is taking too long. Try again, or refresh and add images later.",
       );
 
       if (uploadError) {
@@ -1036,6 +1156,7 @@ export default function AgentPropertiesPage() {
             void load();
             setEditTarget(null);
           }}
+          onRefresh={() => load()}
         />
       )}
       {demoEditTarget && (

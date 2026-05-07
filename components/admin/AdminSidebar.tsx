@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, ExternalLink, Home, LayoutDashboard, MapPin, Settings, Users, ClipboardList } from "lucide-react";
+import { Building2, ExternalLink, Home, LayoutDashboard, MapPin, Settings, Users, ClipboardList, Newspaper } from "lucide-react";
 
 import { useProfileRole } from "@/hooks/useProfileRole";
 
@@ -18,6 +18,7 @@ const navItems: NavItem[] = [
   { label: "Users", href: "/agent/users", match: "/agent/users", icon: Users, adminOnly: true },
   { label: "Settings", href: "/agent/settings", match: "/agent/settings", icon: Settings },
   { label: "Properties", href: "/agent/properties", match: "/agent/properties", icon: Building2 },
+  { label: "Newsroom/Updates", href: "/agent/newsroom-updates", match: "/agent/newsroom-updates", icon: Newspaper },
   { label: "Leads", href: "/agent/listing-leads", match: "/agent/listing-leads", icon: ClipboardList },
 ];
 

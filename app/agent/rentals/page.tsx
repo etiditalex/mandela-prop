@@ -43,6 +43,9 @@ function friendlySupabaseError(message: string) {
       "Upload failed (network/CORS/proxy). Try again on a stable connection, disable VPN/proxy/adblock for Supabase, and ensure Supabase Storage is enabled."
     );
   }
+  if (msg.includes("invalid input syntax for type numeric")) {
+    return "Monthly rent, bedrooms, and bathrooms must be numbers only (e.g. 45000).";
+  }
   if (msg.includes("duplicate key") && msg.includes("properties_slug_key")) {
     return "A property with the same title/slug already exists. Try a slightly different title.";
   }
@@ -53,6 +56,14 @@ function friendlySupabaseError(message: string) {
     return "Storage bucket is missing. Ensure the `property-images` bucket exists and policies from `supabase/schema.sql` are applied.";
   }
   return message;
+}
+
+function parseNumberInput(value: unknown): number {
+  if (typeof value === "number") return value;
+  const raw = String(value ?? "").trim();
+  if (!raw) return NaN;
+  const normalized = raw.replace(/[, ]+/g, "");
+  return Number(normalized);
 }
 
 async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeoutMessage: string) {
@@ -204,10 +215,10 @@ function RentalEditModal({
     setSaving(true);
     setLocalError(null);
 
-    const priceNum = Number(String(price).trim());
-    const bedroomsNum = Number(String(bedrooms).trim());
-    const bathroomsNum = Number(String(bathrooms).trim());
-    if (!Number.isFinite(priceNum) || !Number.isFinite(bedroomsNum) || !Number.isFinite(bathroomsNum)) {
+    const priceNum = parseNumberInput(price);
+    const bedroomsNum = parseNumberInput(bedrooms);
+    const bathroomsNum = parseNumberInput(bathrooms);
+    if (Number.isNaN(priceNum) || Number.isNaN(bedroomsNum) || Number.isNaN(bathroomsNum)) {
       setLocalError("Price, bedrooms, and bathrooms must be valid numbers.");
       setSaving(false);
       return;
@@ -434,8 +445,8 @@ export default function AgentRentalsPage() {
       const title = String(formData.get("title") ?? "").trim();
       const location = String(formData.get("location") ?? "").trim();
       const description = String(formData.get("description") ?? "").trim();
-      const price = Number(String(formData.get("price") ?? "").trim());
-      const bathrooms = Number(String(formData.get("bathrooms") ?? "").trim());
+      const price = parseNumberInput(formData.get("price"));
+      const bathrooms = parseNumberInput(formData.get("bathrooms"));
 
       const inferredBedrooms =
         unitType === "Ensuite" ? 0 :
@@ -445,7 +456,8 @@ export default function AgentRentalsPage() {
         unitType === "4 Bedrooms" ? 4 : 0;
 
       const bedroomsRaw = formData.get("bedrooms");
-      const bedroomsOverride = bedroomsRaw === null || String(bedroomsRaw).trim() === "" ? NaN : Number(String(bedroomsRaw).trim());
+      const bedroomsOverride =
+        bedroomsRaw === null || String(bedroomsRaw).trim() === "" ? NaN : parseNumberInput(bedroomsRaw);
       const bedrooms = Number.isFinite(bedroomsOverride) ? bedroomsOverride : inferredBedrooms;
 
       if (title.length < 3 || location.length < 2 || description.length < 10) {
@@ -736,4 +748,3 @@ export default function AgentRentalsPage() {
     </div>
   );
 }
-

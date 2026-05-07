@@ -2,10 +2,27 @@ export const metadata = {
   title: "Karim Podcast",
 };
 
-const YOUTUBE_EMBED_URL =
-  "https://www.youtube.com/embed?listType=search&list=Karim%20Podcast";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-export default function KarimPodcastPage() {
+export default async function KarimPodcastPage() {
+  const supabase = createSupabaseServerClient();
+
+  const { data } = supabase
+    ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from("podcast_videos")
+        .select("id, title, youtube_url, youtube_id, published_at, created_at")
+        .order("published_at", { ascending: false })
+        .limit(24)
+    : { data: [] as unknown[] };
+
+  const videos = (data ?? []) as Array<{
+    id: string;
+    title: string | null;
+    youtube_id: string | null;
+    youtube_url: string;
+  }>;
+
   return (
     <section>
       <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border border-zinc-300 text-white">
@@ -22,22 +39,34 @@ export default function KarimPodcastPage() {
 
       <div className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-10">
         <p className="max-w-2xl text-sm leading-7 text-zinc-700">
-          Streaming from YouTube search for “Karim Podcast”. When you have a specific YouTube playlist
-          or channel link, we can switch this to embed it directly.
+          Latest Karim Podcast videos curated from the Admin Dashboard.
         </p>
 
-        <div className="mt-8 overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
-          <div className="aspect-video w-full">
-            <iframe
-              className="h-full w-full"
-              src={YOUTUBE_EMBED_URL}
-              title="Karim Podcast"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            />
+        {videos.length > 0 ? (
+          <div className="mt-8 grid gap-6 md:grid-cols-2">
+            {videos.map((v) => (
+              <article key={v.id} className="overflow-hidden rounded-sm border border-zinc-200 bg-white shadow-sm">
+                <div className="aspect-video w-full">
+                  <iframe
+                    className="h-full w-full"
+                    src={v.youtube_id ? `https://www.youtube.com/embed/${v.youtube_id}` : v.youtube_url}
+                    title={v.title ?? "Karim Podcast"}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allowFullScreen
+                  />
+                </div>
+                <div className="p-5">
+                  <p className="text-sm font-semibold text-zinc-900">{v.title ?? "Karim Podcast"}</p>
+                </div>
+              </article>
+            ))}
           </div>
-        </div>
+        ) : (
+          <div className="mt-8 rounded-sm border border-zinc-200 bg-white p-6 text-sm text-zinc-700">
+            No podcast videos yet. Add them from the Admin Dashboard → Podcast.
+          </div>
+        )}
       </div>
     </section>
   );

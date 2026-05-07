@@ -4,12 +4,13 @@
 update public.profiles
 set role = 'admin'
 where email in (
-  'admin@example.com'
+  'etiditalex@gmail.com'
 );
 
 -- Optional: promote additional staff accounts to agent.
-update public.profiles
-set role = 'agent'
-where email in (
-  'agent@example.com'
-);
+-- Uncomment and add emails if needed.
+-- update public.profiles
+-- set role = 'agent'
+-- where email in (
+--   'agent@yourdomain.com'
+-- );

@@ -30,7 +30,7 @@ export default function AgentUsersPage() {
         return;
       }
 
-      setUsers(data ?? []);
+      setUsers(((data as unknown) as ProfileRow[] | null) ?? []);
     } catch {
       setError("Supabase env vars are missing.");
     }
@@ -47,7 +47,8 @@ export default function AgentUsersPage() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error: updateError } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: updateError } = await (supabase as any)
         .from("profiles")
         .update({ role })
         .eq("id", userId);

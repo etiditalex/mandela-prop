@@ -57,7 +57,7 @@ export function PropertyFilters({
       </label>
       <Input
         id="max-price"
-        label="Max Price (USD)"
+        label="Max Price (KES)"
         min={0}
         step={5000}
         type="number"

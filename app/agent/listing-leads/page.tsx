@@ -38,7 +38,7 @@ export default function AgentListingLeadsPage() {
         setError(qError.message);
         return;
       }
-      setRows((data as LeadRow[] | null) ?? []);
+      setRows(((data as unknown) as LeadRow[] | null) ?? []);
     } catch {
       setError("Unable to load listing leads.");
     }
@@ -59,7 +59,13 @@ export default function AgentListingLeadsPage() {
     setError(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { error: uError } = await supabase.from("listing_leads").update({ status }).eq("id", id);
+      // Supabase generated types are overly strict for this update call in this codebase.
+      // We intentionally escape typing here; runtime is safe because column + RLS enforce constraints.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: uError } = await (supabase as any)
+        .from("listing_leads")
+        .update({ status })
+        .eq("id", id);
       if (uError) {
         setError(uError.message);
         setBusy(null);

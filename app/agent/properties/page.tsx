@@ -43,6 +43,18 @@ function formatListingPrice(value: number) {
 
 function friendlySupabaseError(message: string) {
   const msg = message.toLowerCase();
+  if (msg.includes("failed to fetch")) {
+    return (
+      "Image upload failed (network/CORS/proxy). Your listing may still be created. " +
+      "Try again on a stable connection, disable VPN/proxy/adblock for Supabase, and ensure Supabase Storage is enabled."
+    );
+  }
+  if (msg.includes("invalid input syntax for type numeric")) {
+    return (
+      "Price must be numbers only (e.g. 2000000). " +
+      "For land measurements like 50*100, 100*100, half acre, or acres, use the Size field (not Price)."
+    );
+  }
   if (msg.includes("row-level security") || msg.includes("violates row-level security")) {
     return (
       "Permission denied by Supabase RLS. Make sure you are logged in with an account whose " +
@@ -67,40 +79,18 @@ function friendlySupabaseError(message: string) {
   return message;
 }
 
-async function getAuthenticatedUserOrThrow() {
-  const supabase = createSupabaseBrowserClient();
-
-  // `getSession()` should usually be instant (local), but on some environments it can be slow.
-  // Give it more time, then fall back to `getUser()` as a second attempt.
-  try {
-    const { data: sessionData, error: sessionError } = await withTimeout(
-      supabase.auth.getSession(),
-      8000,
-      "Session lookup timed out",
-    );
-    if (sessionError) {
-      throw sessionError;
-    }
-    const userFromSession = sessionData.session?.user ?? null;
-    if (userFromSession) return userFromSession;
-  } catch {
-    // ignore and fall back below
-  }
-
-  const { data: userData, error: userError } = await withTimeout(
-    supabase.auth.getUser(),
-    12000,
-    "User lookup timed out",
-  );
-  if (userError) {
-    throw new Error(userError.message);
-  }
-  const user = userData.user ?? null;
-  if (!user) {
-    throw new Error("You are not logged in. Please sign in again.");
-  }
-  return user;
+function parseNumberInput(value: unknown): number {
+  if (typeof value === "number") return value;
+  const raw = String(value ?? "").trim();
+  if (!raw) return NaN;
+  // Allow common formats like "1,200,000" or "1 200 000"
+  const normalized = raw.replace(/[, ]+/g, "");
+  return Number(normalized);
 }
+
+// Note: we intentionally avoid browser-side `auth.getUser()` / role checks here.
+// On some Windows/OneDrive/proxy/TLS setups these can hang and show “Session lookup timed out”.
+// All property CRUD is enforced by the server routes (`/api/properties`) + Supabase RLS.
 
 function listingStatusClass(status: PropertyRow["status"]) {
   switch (status) {
@@ -160,9 +150,9 @@ function DemoPropertyEditModal({
     setSaving(true);
     setLocalError(null);
 
-    const priceNum = Number(price);
-    const bedroomsNum = Number(bedrooms);
-    const bathroomsNum = Number(bathrooms);
+    const priceNum = parseNumberInput(price);
+    const bedroomsNum = parseNumberInput(bedrooms);
+    const bathroomsNum = parseNumberInput(bathrooms);
     if (Number.isNaN(priceNum) || Number.isNaN(bedroomsNum) || Number.isNaN(bathroomsNum)) {
       setLocalError("Price, bedrooms, and bathrooms must be valid numbers.");
       setSaving(false);
@@ -170,9 +160,6 @@ function DemoPropertyEditModal({
     }
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const user = await getAuthenticatedUserOrThrow();
-
       const titleTrimmed = title.trim();
       if (titleTrimmed.length < 3) {
         setLocalError("Title must be at least 3 characters.");
@@ -186,39 +173,55 @@ function DemoPropertyEditModal({
       }
       const slug = slugify(titleTrimmed);
 
-      const { data: insertedProperty, error: insertError } = await withTimeout(
-        supabase
-          .from("properties")
-          .insert({
-            title: titleTrimmed,
-            slug,
-            description: description.trim(),
-            price: priceNum,
-            location: location.trim(),
-            property_type: residentialType,
-            bedrooms: bedroomsNum,
-            bathrooms: bathroomsNum,
-            size: String(size),
-            listing_kind: listingKind,
-            status: "available",
-            agent_id: user.id,
-          })
-          .select("id")
-          .single(),
-        20000,
-        "Saving timed out. Check your Supabase connection and try again.",
-      );
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch("/api/properties", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          title: titleTrimmed,
+          slug,
+          description: description.trim(),
+          price: priceNum,
+          location: location.trim(),
+          property_type: residentialType,
+          bedrooms: bedroomsNum,
+          bathrooms: bathroomsNum,
+          size: String(size),
+          listing_kind: listingKind,
+          status: "available",
+        }),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutHandle));
 
-      if (insertError) {
-        setLocalError(friendlySupabaseError(insertError.message));
+      const json = (await response.json().catch(() => null)) as
+        | { data?: { id: string; slug: string }; error?: string; code?: string }
+        | null;
+
+      if (!response.ok) {
+        const details = json?.code ? `code=${json.code}` : null;
+        const message = json?.error || `Failed to create property (HTTP ${response.status}).`;
+        setLocalError(friendlySupabaseError([message, details].filter(Boolean).join(" | ")));
         setSaving(false);
         return;
       }
 
-      if (insertedProperty?.id && property.coverImage) {
-        const { error: imageError } = await withTimeout(
-          supabase.from("property_images").insert({
-            property_id: insertedProperty.id,
+      const insertedPropertyId = json?.data?.id;
+      if (!insertedPropertyId) {
+        setLocalError("Create succeeded but response was missing the new property id.");
+        setSaving(false);
+        return;
+      }
+
+      if (insertedPropertyId && property.coverImage) {
+        const supabase = createSupabaseBrowserClient();
+        const { error: imageError } = await withTimeout<{
+          data: unknown;
+          error: { message: string } | null;
+        }>(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).from("property_images").insert({
+            property_id: insertedPropertyId,
             image_url: property.coverImage,
             is_primary: true,
           }),
@@ -393,7 +396,7 @@ function PropertyEditModal({
     setSaving(true);
     setLocalError(null);
 
-    const priceNum = Number(price);
+    const priceNum = parseNumberInput(price);
     const bedroomsNum = listingCategory === "land" ? 0 : Number(bedrooms);
     const bathroomsNum = listingCategory === "land" ? 0 : Number(bathrooms);
     const sizeStr = size;
@@ -408,12 +411,14 @@ function PropertyEditModal({
     }
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { error: updateError } = await supabase
-        .from("properties")
-        .update({
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch("/api/properties", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          id: property.id,
           title: title.trim(),
-          slug: slugify(title),
           description: description.trim(),
           location: location.trim(),
           price: priceNum,
@@ -423,11 +428,18 @@ function PropertyEditModal({
           property_type: propertyTypeValue,
           listing_kind: listingKind,
           status,
-        })
-        .eq("id", property.id);
+        }),
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutHandle));
 
-      if (updateError) {
-        setLocalError(updateError.message);
+      const json = (await response.json().catch(() => null)) as
+        | { data?: { id: string; slug: string }; error?: string; code?: string }
+        | null;
+
+      if (!response.ok) {
+        const details = json?.code ? `code=${json.code}` : null;
+        const message = json?.error || `Failed to update property (HTTP ${response.status}).`;
+        setLocalError(friendlySupabaseError([message, details].filter(Boolean).join(" | ")));
         setSaving(false);
         return;
       }
@@ -609,8 +621,11 @@ export default function AgentPropertiesPage() {
 
   const seedFrontendProperties = async () => {
     const supabase = createSupabaseBrowserClient();
-    const { data: sessionData } = await supabase.auth.getSession();
-    const user = sessionData.session?.user ?? null;
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      throw new Error(userError.message);
+    }
+    const user = userData.user ?? null;
 
     if (!user) {
       throw new Error("Login required to import frontend properties.");
@@ -630,7 +645,8 @@ export default function AgentPropertiesPage() {
       agent_id: user.id,
     }));
 
-    const { data: upsertedRows, error: upsertError } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: upsertedRows, error: upsertError } = await (supabase as any)
       .from("properties")
       .upsert(payload, {
         onConflict: "slug",
@@ -647,22 +663,35 @@ export default function AgentPropertiesPage() {
 
   const load = async () => {
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error: queryError } = await supabase
-        .from("properties")
-        .select("*, property_images(*)")
-        .order("created_at", { ascending: false });
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch("/api/agent/properties", { signal: controller.signal }).finally(() =>
+        clearTimeout(timeoutHandle),
+      );
 
-      if (queryError) {
-        setError(queryError.message);
+      const json = (await response.json().catch(() => null)) as
+        | { data?: PropertyWithImagesRow[]; error?: string; code?: string }
+        | null;
+
+      if (!response.ok) {
+        const message =
+          json?.error ||
+          (response.status === 401 ? "Login required." : `Failed to load properties (HTTP ${response.status}).`);
+        setError(friendlySupabaseError(message));
+        // Don't clear the table on transient errors; keep last-known good state.
         return;
       }
-      const rows = (data as PropertyWithImagesRow[] | null) ?? [];
 
+      const rows = json?.data ?? [];
       setProperties(rows);
+      setError(null);
     } catch (loadError) {
+      if (loadError instanceof DOMException && loadError.name === "AbortError") {
+        setError("Loading timed out. Check your connection and refresh.");
+        return;
+      }
       if (loadError instanceof Error) {
-        setError(loadError.message);
+        setError(friendlySupabaseError(loadError.message));
       } else {
         setError("Unable to load properties.");
       }
@@ -671,6 +700,9 @@ export default function AgentPropertiesPage() {
 
   useEffect(() => {
     void load();
+    return () => {
+      // no-op
+    };
   }, []);
 
   // (uses the file-level `withTimeout` helper)
@@ -711,20 +743,27 @@ export default function AgentPropertiesPage() {
     const extension = file.name.split(".").pop() || "jpg";
     const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("property-images")
-      .upload(path, file, { upsert: false });
+    const { error: uploadError } = await withTimeout(
+      supabase.storage.from("property-images").upload(path, file, { upsert: false }),
+      45000,
+      "Image upload timed out. The listing is created—refresh and add images from the inventory list.",
+    );
 
     if (uploadError) {
       throw new Error(friendlySupabaseError(uploadError.message));
     }
 
     const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
-    const { error: imageError } = await supabase.from("property_images").insert({
-      property_id: propertyId,
-      image_url: publicUrlData.publicUrl,
-      is_primary: isPrimary,
-    });
+    const { error: imageError } = await withTimeout(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (supabase as any).from("property_images").insert({
+        property_id: propertyId,
+        image_url: publicUrlData.publicUrl,
+        is_primary: isPrimary,
+      }),
+      20000,
+      "Image save timed out. The listing is created—refresh to confirm, then add images later.",
+    );
 
     if (imageError) {
       throw new Error(friendlySupabaseError(imageError.message));
@@ -732,32 +771,39 @@ export default function AgentPropertiesPage() {
   };
 
   const insertPropertyWithUniqueSlug = async (payload: Database["public"]["Tables"]["properties"]["Insert"]) => {
-    const supabase = createSupabaseBrowserClient();
-    const baseSlug = payload.slug;
-    const maxAttempts = 6;
+    const controller = new AbortController();
+    const timeoutHandle = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch("/api/properties", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
 
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      const slug = attempt === 0 ? baseSlug : `${baseSlug}-${attempt + 1}`;
-      const { data, error: insertError } = await supabase
-        .from("properties")
-        .insert({ ...payload, slug })
-        .select("id, slug")
-        .single();
+      const json = (await response.json().catch(() => null)) as
+        | { data?: { id: string; slug: string }; error?: string; code?: string }
+        | null;
 
-      if (!insertError) return data;
-
-      const code = (insertError as unknown as { code?: string }).code;
-      const isUniqueViolation =
-        code === "23505" ||
-        insertError.message.toLowerCase().includes("duplicate key") ||
-        insertError.message.toLowerCase().includes("properties_slug_key");
-
-      if (!isUniqueViolation) {
-        throw new Error(friendlySupabaseError(insertError.message));
+      if (!response.ok) {
+        const details = json?.code ? `code=${json.code}` : null;
+        const message = json?.error || `Failed to create property (HTTP ${response.status}).`;
+        throw new Error(friendlySupabaseError([message, details].filter(Boolean).join(" | ")));
       }
-    }
 
-    throw new Error("Could not generate a unique URL slug for this property. Try a different title.");
+      if (!json?.data?.id) {
+        throw new Error("Create succeeded but response was missing the new property id.");
+      }
+
+      return json.data;
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        throw new Error("Creating timed out while saving the listing. Check your Supabase connection and try again.");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timeoutHandle);
+    }
   };
 
   const onCreate = async (event: FormEvent<HTMLFormElement>) => {
@@ -765,11 +811,10 @@ export default function AgentPropertiesPage() {
     setCreating(true);
     setError(null);
     setMessage(null);
+    const formEl = event.currentTarget;
     const formData = new FormData(event.currentTarget);
 
     try {
-      const user = await getAuthenticatedUserOrThrow();
-
       const title = String(formData.get("title") ?? "").trim();
       if (title.length < 3) {
         setError("Title must be at least 3 characters.");
@@ -791,15 +836,15 @@ export default function AgentPropertiesPage() {
         setCreating(false);
         return;
       }
-      const priceNum = Number(formData.get("price") ?? 0);
+      const priceNum = parseNumberInput(formData.get("price"));
       if (!Number.isFinite(priceNum) || priceNum < 0) {
         setError("Price must be a valid non-negative number.");
         setCreating(false);
         return;
       }
 
-      const bedroomsNum = listingCategory === "land" ? 0 : Number(formData.get("bedrooms") ?? 0);
-      const bathroomsNum = listingCategory === "land" ? 0 : Number(formData.get("bathrooms") ?? 0);
+      const bedroomsNum = listingCategory === "land" ? 0 : parseNumberInput(formData.get("bedrooms"));
+      const bathroomsNum = listingCategory === "land" ? 0 : parseNumberInput(formData.get("bathrooms"));
       if (
         listingCategory !== "land" &&
         (!Number.isFinite(bedroomsNum) || bedroomsNum < 0 || !Number.isFinite(bathroomsNum) || bathroomsNum < 0)
@@ -821,48 +866,62 @@ export default function AgentPropertiesPage() {
         size: String(formData.get("size") ?? ""),
         listing_kind: listingKind,
         status: "available" as const,
-        agent_id: user.id,
       };
 
       const insertedProperty = await withTimeout(
-        insertPropertyWithUniqueSlug(payload),
+        // insertPropertyWithUniqueSlug expects a typed DB Insert shape; we keep payload minimal here.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        insertPropertyWithUniqueSlug(payload as any),
         20000,
         "Creating timed out while saving the listing. Check your Supabase connection and try again.",
       );
 
       if (insertedProperty && createImages.length) {
-        const failures: string[] = [];
-        await withTimeout(
-          (async () => {
-            for (let index = 0; index < createImages.length; index += 1) {
-              const file = createImages[index];
-              try {
-                // Ensure at least one image is primary.
-                await uploadImageForProperty(insertedProperty.id, file, index === 0);
-              } catch (err) {
-                failures.push(err instanceof Error ? err.message : "An image failed to upload.");
-              }
-            }
-          })(),
-          45000,
-          "Creating timed out while uploading images. The listing may be created—refresh to confirm.",
-        );
+        // Don't block the "Create" UX on image uploads (network/CDN can be slow).
+        // We upload in the background and refresh once done.
+        setMessage("Property created. Uploading images in background…");
+        const filesToUpload = [...createImages];
+        void (async () => {
+          const failures: string[] = [];
+          try {
+            await withTimeout(
+              (async () => {
+                for (let index = 0; index < filesToUpload.length; index += 1) {
+                  const file = filesToUpload[index];
+                  try {
+                    await uploadImageForProperty(insertedProperty.id, file, index === 0);
+                  } catch (err) {
+                    failures.push(err instanceof Error ? err.message : "An image failed to upload.");
+                  }
+                }
+              })(),
+              180000,
+              "Image uploads are taking too long. You can refresh and add images from the inventory list.",
+            );
+          } catch (err) {
+            failures.push(err instanceof Error ? err.message : "Image upload timed out.");
+          }
 
-        if (failures.length > 0) {
-          setMessage(
-            `Property created, but ${failures.length} image(s) failed to upload. You can add them from the inventory list.`,
-          );
-        }
+          if (failures.length > 0) {
+            setMessage(
+              `Property created, but ${failures.length} image(s) failed to upload. You can add them from the inventory list.`,
+            );
+            return;
+          }
+
+          setMessage("Property created successfully.");
+          await load();
+        })();
       }
 
-      (event.currentTarget as HTMLFormElement).reset();
+      formEl?.reset?.();
       setListingCategory("property");
       setListingKind("sale");
       setSelectedPropertyType(residentialPropertyTypes[0]);
       setSelectedLandType(landCategoryList[0].title);
       setCreateImages([]);
       await withTimeout(load(), 12000, "Created, but refresh timed out. Click Refresh to reload.");
-      if (!message) {
+      if (!createImages.length) {
         setMessage("Property created successfully.");
       }
     } catch (createError) {
@@ -877,46 +936,77 @@ export default function AgentPropertiesPage() {
   };
 
   const onDelete = async (id: string) => {
-    const supabase = createSupabaseBrowserClient();
-    const { error: deleteError } = await supabase.from("properties").delete().eq("id", id);
-    if (deleteError) {
-      setError(friendlySupabaseError(deleteError.message));
-      return;
+    setError(null);
+    setMessage(null);
+    try {
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(() => controller.abort(), 20000);
+      const response = await fetch(`/api/properties?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timeoutHandle));
+
+      if (response.status === 204) {
+        await load();
+        return;
+      }
+
+      const json = (await response.json().catch(() => null)) as
+        | { error?: string; code?: string }
+        | null;
+      const details = json?.code ? `code=${json.code}` : null;
+      const message = json?.error || `Failed to delete property (HTTP ${response.status}).`;
+      setError(friendlySupabaseError([message, details].filter(Boolean).join(" | ")));
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setError("Deleting timed out. Check your connection and try again.");
+        return;
+      }
+      setError("Unable to delete listing.");
     }
-    await load();
   };
 
   const onUploadImage = async (propertyId: string, file: File) => {
-    const supabase = createSupabaseBrowserClient();
-    const extension = file.name.split(".").pop() || "jpg";
-    const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const extension = file.name.split(".").pop() || "jpg";
+      const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("property-images")
-      .upload(path, file, {
-        upsert: false,
-      });
+      const { error: uploadError } = await withTimeout(
+        supabase.storage.from("property-images").upload(path, file, { upsert: false }),
+        45000,
+        "Image upload timed out. Try again, or refresh and add images later.",
+      );
 
-    if (uploadError) {
-      setError(friendlySupabaseError(uploadError.message));
-      return;
+      if (uploadError) {
+        setError(friendlySupabaseError(uploadError.message));
+        return;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("property-images")
+        .getPublicUrl(path);
+
+      const { error: imageError } = await withTimeout(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).from("property_images").insert({
+          property_id: propertyId,
+          image_url: publicUrlData.publicUrl,
+          is_primary: false,
+        }),
+        20000,
+        "Image save timed out. Refresh and try again.",
+      );
+
+      if (imageError) {
+        setError(friendlySupabaseError(imageError.message));
+        return;
+      }
+      await load();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to upload image.";
+      setError(friendlySupabaseError(message));
     }
-
-    const { data: publicUrlData } = supabase.storage
-      .from("property-images")
-      .getPublicUrl(path);
-
-    const { error: imageError } = await supabase.from("property_images").insert({
-      property_id: propertyId,
-      image_url: publicUrlData.publicUrl,
-      is_primary: false,
-    });
-
-    if (imageError) {
-      setError(friendlySupabaseError(imageError.message));
-      return;
-    }
-    await load();
   };
 
   const landListingsCount = properties.filter((property) =>

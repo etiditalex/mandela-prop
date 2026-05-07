@@ -3,6 +3,8 @@ import { Metadata } from "next";
 import { PropertiesClient } from "./PropertiesClient";
 import { getAllProperties } from "@/services/propertyService";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Properties",
   description: "Browse curated premium homes and investment-ready residences.",

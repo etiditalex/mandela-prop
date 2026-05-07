@@ -1,4 +1,28 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## Mandela Prop
+
+This is a Next.js + Supabase app. The **admin dashboard will not talk to the database unless Supabase env vars are set**.
+
+## Supabase setup (fresh, reliable)
+
+- **Create a Supabase project**
+  - Supabase Dashboard → New project
+- **Apply the database schema**
+  - Supabase Dashboard → SQL Editor → run `supabase/schema.sql`
+- **Create your staff account**
+  - Run the app, go to `/signup`, create your account (verify email if your project requires it)
+- **Promote yourself to admin**
+  - Supabase Dashboard → SQL Editor → run `supabase/bootstrap_admin.sql` (edit the email inside first)
+- **Set env vars locally**
+  - Copy `.env.local.example` → `.env.local`
+  - Fill in:
+    - `NEXT_PUBLIC_SUPABASE_URL`
+    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+## Quick connection test
+
+- Start the app and open `http://localhost:3000/api/health/supabase`
+  - `ok: true` means the app can reach Supabase.
+  - If `configured: false`, your `.env.local` is missing/incorrect.
 
 ## Getting Started
 

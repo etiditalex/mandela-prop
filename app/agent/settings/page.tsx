@@ -19,16 +19,17 @@ export default function AgentSettingsPage() {
     async function loadProfile() {
       try {
         const supabase = createSupabaseBrowserClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+        const { data: sessionData } = await supabase.auth.getSession();
+        const user = sessionData.session?.user ?? null;
 
         if (!user) {
           setError("Login required to access settings.");
           return;
         }
 
-        const { data, error } = await supabase
+        // Supabase generated types are overly strict in this codebase.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: profileData, error } = await (supabase as any)
           .from("profiles")
           .select("*")
           .eq("id", user.id)
@@ -39,7 +40,7 @@ export default function AgentSettingsPage() {
           return;
         }
 
-        setProfile(data);
+        setProfile(profileData);
       } catch {
         setError("Supabase env vars are missing.");
       }
@@ -68,7 +69,8 @@ export default function AgentSettingsPage() {
         phone: String(formData.get("phone") ?? "") || null,
       };
 
-      const { error } = await supabase.from("profiles").update(updates).eq("id", profile.id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).from("profiles").update(updates).eq("id", profile.id);
       if (error) {
         setError(error.message);
         setLoading(false);

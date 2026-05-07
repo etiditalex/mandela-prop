@@ -43,8 +43,8 @@ export function useProfileRole() {
       setReady(true);
     }
 
-    supabase.auth.getUser().then(({ data }) => {
-      void load(data.user ?? null);
+    supabase.auth.getSession().then(({ data }) => {
+      void load(data.session?.user ?? null);
     });
 
     const {

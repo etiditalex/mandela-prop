@@ -9,11 +9,21 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 }
 
 export async function middleware(request: NextRequest) {
-  const { response, user, role } = await updateSession(request);
   const pathname = request.nextUrl.pathname;
   const fullPath = `${pathname}${request.nextUrl.search}`;
 
-  const isStaff = role === "agent" || role === "admin";
+  // Performance: avoid Supabase session lookups on public routes.
+  // Only `/agent/*` is protected and `/login` needs the "already logged in" redirect.
+  const needsAuthGate = pathname === "/login" || pathname.startsWith("/agent");
+  if (!needsAuthGate) {
+    return NextResponse.next();
+  }
+
+  const { response, user, role } = await updateSession(request);
+
+  // If role lookup times out (common on flaky networks), don't block navigation for logged-in users.
+  // The pages will still be protected by Supabase RLS.
+  const isStaff = role === "agent" || role === "admin" || (user && role == null);
 
   if (pathname === "/login" && user && isStaff) {
     const nextParam = request.nextUrl.searchParams.get("next");

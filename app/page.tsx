@@ -14,6 +14,8 @@ import { getAllProperties } from "@/services/propertyService";
 const HERO_GREEN_LAND =
   "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2000&q=80";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const allProperties = await getAllProperties();
   const featuredProperties = allProperties.slice(0, 3);

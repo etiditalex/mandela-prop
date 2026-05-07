@@ -26,25 +26,27 @@ const SavedPropertiesContext = createContext<
 export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [supabase] = useState(() => {
+    try {
+      return createSupabaseBrowserClient();
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     let mounted = true;
-    let supabase: ReturnType<typeof createSupabaseBrowserClient> | null = null;
+    if (!supabase) return;
 
-    try {
-      supabase = createSupabaseBrowserClient();
-    } catch {
-      return;
-    }
-
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (!mounted) return;
-      setUser(data.user ?? null);
-      if (data.user) {
+      const nextUser = data.session?.user ?? null;
+      setUser(nextUser);
+      if (nextUser) {
         const { data: rows } = await supabase!
           .from("saved_properties")
           .select("property_id")
-          .eq("user_id", data.user.id);
+          .eq("user_id", nextUser.id);
         setSavedIds((rows ?? []).map((row) => row.property_id));
       }
     });
@@ -69,7 +71,7 @@ export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   const value = useMemo(
     () => ({
@@ -77,8 +79,7 @@ export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
       savedIds,
       toggleSave: (propertyId: string) => {
         const run = async () => {
-          if (!user) return;
-          const supabase = createSupabaseBrowserClient();
+          if (!user || !supabase) return;
           const isCurrentlySaved = savedIds.includes(propertyId);
           if (isCurrentlySaved) {
             await supabase
@@ -100,15 +101,14 @@ export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
       isSaved: (propertyId: string) => savedIds.includes(propertyId),
       clearSaved: () => {
         const run = async () => {
-          if (!user) return;
-          const supabase = createSupabaseBrowserClient();
+          if (!user || !supabase) return;
           await supabase.from("saved_properties").delete().eq("user_id", user.id);
           setSavedIds([]);
         };
         void run();
       },
     }),
-    [savedIds, user],
+    [savedIds, supabase, user],
   );
 
   return (

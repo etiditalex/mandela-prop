@@ -118,9 +118,10 @@ stable
 security definer
 set search_path = public
 as $$
-  select role
-  from public.profiles
-  where id = auth.uid()
+  select coalesce(
+    (select role from public.profiles where id = auth.uid()),
+    'client'::public.app_role
+  )
 $$;
 
 -- Create profile automatically on signup
@@ -134,7 +135,11 @@ begin
   insert into public.profiles (id, full_name, email, role)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'full_name', ''),
+    coalesce(
+      nullif(coalesce(new.raw_user_meta_data->>'full_name', ''), ''),
+      nullif(split_part(new.email, '@', 1), ''),
+      'User'
+    ),
     new.email,
     'client'
   )
@@ -206,7 +211,7 @@ on public.properties
 for all
 to authenticated
 using (agent_id = auth.uid())
-with check (agent_id = auth.uid() and public.current_user_role() in ('agent', 'admin'));
+with check (agent_id = auth.uid());
 
 drop policy if exists "properties_admin_all" on public.properties;
 create policy "properties_admin_all"

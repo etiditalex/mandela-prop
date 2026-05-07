@@ -44,7 +44,10 @@ function friendlySupabaseError(message: string) {
     );
   }
   if (msg.includes("invalid input syntax for type numeric")) {
-    return "Monthly rent, bedrooms, and bathrooms must be numbers only (e.g. 45000).";
+    return (
+      "Monthly rent, bedrooms, and bathrooms must be numbers only (e.g. 45000). " +
+      "If you typed commas/spaces (e.g. 45,000), remove them."
+    );
   }
   if (msg.includes("duplicate key") && msg.includes("properties_slug_key")) {
     return "A property with the same title/slug already exists. Try a slightly different title.";
@@ -309,9 +312,33 @@ function RentalEditModal({
 
         <Input id="r_title" label="Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
         <Input id="r_location" label="Location" value={location} onChange={(e) => setLocation(e.target.value)} required />
-        <Input id="r_price" label="Monthly rent" type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
-        <Input id="r_beds" label="Bedrooms" type="number" value={bedrooms} onChange={(e) => setBedrooms(e.target.value)} required />
-        <Input id="r_baths" label="Bathrooms" type="number" value={bathrooms} onChange={(e) => setBathrooms(e.target.value)} required />
+        <Input
+          id="r_price"
+          label="Monthly rent"
+          type="text"
+          inputMode="numeric"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          required
+        />
+        <Input
+          id="r_beds"
+          label="Bedrooms"
+          type="text"
+          inputMode="numeric"
+          value={bedrooms}
+          onChange={(e) => setBedrooms(e.target.value)}
+          required
+        />
+        <Input
+          id="r_baths"
+          label="Bathrooms"
+          type="text"
+          inputMode="numeric"
+          value={bathrooms}
+          onChange={(e) => setBathrooms(e.target.value)}
+          required
+        />
         <Input id="r_size" label="Size (optional)" value={size} onChange={(e) => setSize(e.target.value)} />
 
         <label className="grid gap-2 text-sm text-zinc-700" htmlFor="r_status">
@@ -610,12 +637,13 @@ export default function AgentRentalsPage() {
 
             <Input id="title" name="title" label="Title" required />
             <Input id="location" name="location" label="Location" required />
-            <Input id="price" name="price" type="number" label="Monthly rent" required />
-            <Input id="bathrooms" name="bathrooms" type="number" label="Bathrooms" required />
+            <Input id="price" name="price" type="text" inputMode="numeric" label="Monthly rent" required />
+            <Input id="bathrooms" name="bathrooms" type="text" inputMode="numeric" label="Bathrooms" required />
             <Input
               id="bedrooms"
               name="bedrooms"
-              type="number"
+              type="text"
+              inputMode="numeric"
               label="Bedrooms (optional override)"
               placeholder="Auto from rental type"
             />

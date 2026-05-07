@@ -130,6 +130,47 @@ function assertImageAcceptable(file: File) {
   }
 }
 
+async function compressImageForUpload(file: File) {
+  // Keep small files as-is (fast path).
+  if (file.size <= 900 * 1024) return file;
+
+  // Prefer modern formats for photos; keep PNG/GIF as-is (logos/screenshots).
+  const typeLower = file.type.toLowerCase();
+  const nameLower = file.name.toLowerCase();
+  const isPng = typeLower.includes("png") || nameLower.endsWith(".png");
+  const isGif = typeLower.includes("gif") || nameLower.endsWith(".gif");
+  if (isPng || isGif) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const maxDim = 1600; // good balance for listing galleries
+    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+    const targetW = Math.max(1, Math.round(bitmap.width * scale));
+    const targetH = Math.max(1, Math.round(bitmap.height * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+
+    const blob: Blob | null = await new Promise((resolve) => {
+      // JPEG is most compatible for photos; WebP can be blocked by some tooling.
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82);
+    });
+    if (!blob) return file;
+
+    // If compression didn't help, keep original.
+    if (blob.size >= file.size) return file;
+
+    const compressedName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], compressedName, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
+}
+
 function DemoPropertyEditModal({
   property,
   onClose,
@@ -407,7 +448,9 @@ function PropertyEditModal({
     try {
       const supabase = createSupabaseBrowserClient();
       for (let index = 0; index < files.length; index += 1) {
-        const file = files[index];
+        const originalFile = files[index];
+        assertImageAcceptable(originalFile);
+        const file = await compressImageForUpload(originalFile);
         assertImageAcceptable(file);
         const extension = file.name.split(".").pop() || "jpg";
         const path = `${property.id}/${crypto.randomUUID()}.${extension}`;
@@ -859,11 +902,13 @@ export default function AgentPropertiesPage() {
   const uploadImageForProperty = async (propertyId: string, file: File, isPrimary: boolean) => {
     assertImageAcceptable(file);
     const supabase = createSupabaseBrowserClient();
-    const extension = file.name.split(".").pop() || "jpg";
+    const uploadFile = await compressImageForUpload(file);
+    assertImageAcceptable(uploadFile);
+    const extension = uploadFile.name.split(".").pop() || "jpg";
     const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await withTimeout(
-      supabase.storage.from("property-images").upload(path, file, { upsert: false }),
+      supabase.storage.from("property-images").upload(path, uploadFile, { upsert: false }),
       120000,
       "Image upload is taking too long. The listing is created—refresh and add images from the inventory list.",
     );
@@ -1092,11 +1137,13 @@ export default function AgentPropertiesPage() {
     try {
       assertImageAcceptable(file);
       const supabase = createSupabaseBrowserClient();
-      const extension = file.name.split(".").pop() || "jpg";
+      const uploadFile = await compressImageForUpload(file);
+      assertImageAcceptable(uploadFile);
+      const extension = uploadFile.name.split(".").pop() || "jpg";
       const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadError } = await withTimeout(
-        supabase.storage.from("property-images").upload(path, file, { upsert: false }),
+        supabase.storage.from("property-images").upload(path, uploadFile, { upsert: false }),
         120000,
         "Image upload is taking too long. Try again, or refresh and add images later.",
       );

@@ -69,6 +69,25 @@ function parseNumberInput(value: unknown): number {
   return Number(normalized);
 }
 
+function parseRequiredNumber(label: string, value: unknown) {
+  const raw = String(value ?? "").trim();
+  const parsed = parseNumberInput(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${label} must be a number. You entered: "${raw || "(empty)"}".`);
+  }
+  return parsed;
+}
+
+function parseOptionalNumber(label: string, value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return NaN;
+  const parsed = parseNumberInput(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${label} must be a number. You entered: "${raw}".`);
+  }
+  return parsed;
+}
+
 async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeoutMessage: string) {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
   const timeoutPromise = new Promise<T>((_, reject) => {
@@ -218,11 +237,15 @@ function RentalEditModal({
     setSaving(true);
     setLocalError(null);
 
-    const priceNum = parseNumberInput(price);
-    const bedroomsNum = parseNumberInput(bedrooms);
-    const bathroomsNum = parseNumberInput(bathrooms);
-    if (Number.isNaN(priceNum) || Number.isNaN(bedroomsNum) || Number.isNaN(bathroomsNum)) {
-      setLocalError("Price, bedrooms, and bathrooms must be valid numbers.");
+    let priceNum = NaN;
+    let bedroomsNum = NaN;
+    let bathroomsNum = NaN;
+    try {
+      priceNum = parseRequiredNumber("Monthly rent", price);
+      bedroomsNum = parseRequiredNumber("Bedrooms", bedrooms);
+      bathroomsNum = parseRequiredNumber("Bathrooms", bathrooms);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Invalid numeric value.");
       setSaving(false);
       return;
     }
@@ -472,8 +495,8 @@ export default function AgentRentalsPage() {
       const title = String(formData.get("title") ?? "").trim();
       const location = String(formData.get("location") ?? "").trim();
       const description = String(formData.get("description") ?? "").trim();
-      const price = parseNumberInput(formData.get("price"));
-      const bathrooms = parseNumberInput(formData.get("bathrooms"));
+      const price = parseRequiredNumber("Monthly rent", formData.get("price"));
+      const bathrooms = parseRequiredNumber("Bathrooms", formData.get("bathrooms"));
 
       const inferredBedrooms =
         unitType === "Ensuite" ? 0 :
@@ -483,14 +506,12 @@ export default function AgentRentalsPage() {
         unitType === "4 Bedrooms" ? 4 : 0;
 
       const bedroomsRaw = formData.get("bedrooms");
-      const bedroomsOverride =
-        bedroomsRaw === null || String(bedroomsRaw).trim() === "" ? NaN : parseNumberInput(bedroomsRaw);
+      const bedroomsOverride = parseOptionalNumber("Bedrooms (override)", bedroomsRaw);
       const bedrooms = Number.isFinite(bedroomsOverride) ? bedroomsOverride : inferredBedrooms;
 
       if (title.length < 3 || location.length < 2 || description.length < 10) {
         throw new Error("Title, location, and description are required (description min 10 chars).");
       }
-      if (!Number.isFinite(price)) throw new Error("Monthly rent must be a valid number.");
       if (!Number.isFinite(bedrooms) || bedrooms < 0) throw new Error("Bedrooms must be a valid non-negative number.");
       if (!Number.isFinite(bathrooms) || bathrooms < 0) throw new Error("Bathrooms must be a valid non-negative number.");
 

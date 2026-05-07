@@ -412,6 +412,13 @@ export default function AgentRentalsPage() {
   const [createImages, setCreateImages] = useState<File[]>([]);
   const [unitType, setUnitType] = useState<RentalUnitType>("1 Bedroom");
   const [editTarget, setEditTarget] = useState<PropertyWithImagesRow | null>(null);
+  const [createTitle, setCreateTitle] = useState("");
+  const [createLocation, setCreateLocation] = useState("");
+  const [createPrice, setCreatePrice] = useState("");
+  const [createBathrooms, setCreateBathrooms] = useState("");
+  const [createBedroomsOverride, setCreateBedroomsOverride] = useState("");
+  const [createSize, setCreateSize] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
 
   const load = async () => {
     try {
@@ -489,14 +496,12 @@ export default function AgentRentalsPage() {
     setError(null);
     setMessage(null);
 
-    const formEl = event.currentTarget;
-    const formData = new FormData(formEl);
     try {
-      const title = String(formData.get("title") ?? "").trim();
-      const location = String(formData.get("location") ?? "").trim();
-      const description = String(formData.get("description") ?? "").trim();
-      const price = parseRequiredNumber("Monthly rent", formData.get("price"));
-      const bathrooms = parseRequiredNumber("Bathrooms", formData.get("bathrooms"));
+      const title = createTitle.trim();
+      const location = createLocation.trim();
+      const description = createDescription.trim();
+      const price = parseRequiredNumber("Monthly rent", createPrice);
+      const bathrooms = parseRequiredNumber("Bathrooms", createBathrooms);
 
       const inferredBedrooms =
         unitType === "Ensuite" ? 0 :
@@ -505,8 +510,7 @@ export default function AgentRentalsPage() {
         unitType === "3 Bedrooms" ? 3 :
         unitType === "4 Bedrooms" ? 4 : 0;
 
-      const bedroomsRaw = formData.get("bedrooms");
-      const bedroomsOverride = parseOptionalNumber("Bedrooms (override)", bedroomsRaw);
+      const bedroomsOverride = parseOptionalNumber("Bedrooms (override)", createBedroomsOverride);
       const bedrooms = Number.isFinite(bedroomsOverride) ? bedroomsOverride : inferredBedrooms;
 
       if (title.length < 3 || location.length < 2 || description.length < 10) {
@@ -524,7 +528,7 @@ export default function AgentRentalsPage() {
         property_type: unitType,
         bedrooms,
         bathrooms,
-        size: String(formData.get("size") ?? ""),
+        size: createSize.trim(),
         listing_kind: "rent" as const,
         status: "available" as const,
       };
@@ -584,7 +588,13 @@ export default function AgentRentalsPage() {
         setMessage("Rental created successfully.");
       }
 
-      formEl.reset();
+      setCreateTitle("");
+      setCreateLocation("");
+      setCreatePrice("");
+      setCreateBathrooms("");
+      setCreateBedroomsOverride("");
+      setCreateSize("");
+      setCreateDescription("");
       setCreateImages([]);
       await load();
     } catch (err) {
@@ -656,10 +666,42 @@ export default function AgentRentalsPage() {
               </select>
             </label>
 
-            <Input id="title" name="title" label="Title" required />
-            <Input id="location" name="location" label="Location" required />
-            <Input id="price" name="price" type="text" inputMode="numeric" label="Monthly rent" required />
-            <Input id="bathrooms" name="bathrooms" type="text" inputMode="numeric" label="Bathrooms" required />
+            <Input
+              id="title"
+              name="title"
+              label="Title"
+              value={createTitle}
+              onChange={(e) => setCreateTitle(e.target.value)}
+              required
+            />
+            <Input
+              id="location"
+              name="location"
+              label="Location"
+              value={createLocation}
+              onChange={(e) => setCreateLocation(e.target.value)}
+              required
+            />
+            <Input
+              id="price"
+              name="price"
+              type="text"
+              inputMode="numeric"
+              label="Monthly rent"
+              value={createPrice}
+              onChange={(e) => setCreatePrice(e.target.value)}
+              required
+            />
+            <Input
+              id="bathrooms"
+              name="bathrooms"
+              type="text"
+              inputMode="numeric"
+              label="Bathrooms"
+              value={createBathrooms}
+              onChange={(e) => setCreateBathrooms(e.target.value)}
+              required
+            />
             <Input
               id="bedrooms"
               name="bedrooms"
@@ -667,14 +709,25 @@ export default function AgentRentalsPage() {
               inputMode="numeric"
               label="Bedrooms (optional override)"
               placeholder="Auto from rental type"
+              value={createBedroomsOverride}
+              onChange={(e) => setCreateBedroomsOverride(e.target.value)}
             />
-            <Input id="size" name="size" label="Size (optional)" placeholder="e.g., 1200 sqft" />
+            <Input
+              id="size"
+              name="size"
+              label="Size (optional)"
+              placeholder="e.g., 1200 sqft"
+              value={createSize}
+              onChange={(e) => setCreateSize(e.target.value)}
+            />
 
             <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="description">
               <span className="font-medium">Description</span>
               <textarea
                 id="description"
                 name="description"
+                value={createDescription}
+                onChange={(e) => setCreateDescription(e.target.value)}
                 required
                 rows={4}
                 className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"

@@ -397,8 +397,8 @@ function PropertyEditModal({
     setLocalError(null);
 
     const priceNum = parseNumberInput(price);
-    const bedroomsNum = listingCategory === "land" ? 0 : Number(bedrooms);
-    const bathroomsNum = listingCategory === "land" ? 0 : Number(bathrooms);
+    const bedroomsNum = listingCategory === "land" ? 0 : parseNumberInput(bedrooms);
+    const bathroomsNum = listingCategory === "land" ? 0 : parseNumberInput(bathrooms);
     const sizeStr = size;
     if (
       Number.isNaN(priceNum) ||

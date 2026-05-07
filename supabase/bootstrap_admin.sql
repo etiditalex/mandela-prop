@@ -4,7 +4,7 @@
 update public.profiles
 set role = 'admin'
 where email in (
-  'etiditalex@gmail.com'
+  'admin@example.com'
 );
 
 -- Optional: promote additional staff accounts to agent.

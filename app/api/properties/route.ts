@@ -64,6 +64,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: staff.error }, { status: staff.status });
   }
   const user = staff.user;
+  if (!user) {
+    // eslint-disable-next-line no-console
+    console.warn("[api/properties][POST] staff check missing user", { status: staff.status });
+    return NextResponse.json({ error: "Login required." }, { status: 401 });
+  }
 
   const body = (await req.json()) as Record<string, unknown>;
   const title = String(body.title ?? "").trim();

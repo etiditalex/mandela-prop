@@ -27,7 +27,7 @@ export default function SavedPropertiesPage() {
           .from("properties")
           .select("*, property_images(*)");
         if (!data) return;
-        const rows = data as PropertyWithImages[];
+        const rows = data as unknown as PropertyWithImages[];
         const next = rows.map((item) => {
           const images = item.property_images ?? [];
           const sorted = [...images].sort((a, b) => Number(b.is_primary) - Number(a.is_primary));

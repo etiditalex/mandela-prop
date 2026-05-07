@@ -33,7 +33,7 @@ export function useProfileRole() {
         setReady(true);
         return;
       }
-      const { data } = await supabase!
+      const { data } = await (supabase as any)
         .from("profiles")
         .select("role, full_name")
         .eq("id", nextUser.id)

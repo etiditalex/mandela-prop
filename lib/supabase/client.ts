@@ -23,9 +23,6 @@ export function createSupabaseBrowserClient() {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      // Helps avoid weird auth hangs in some environments by preventing
-      // simultaneous session refresh attempts from different tabs/components.
-      multiTab: false,
     },
   });
 }

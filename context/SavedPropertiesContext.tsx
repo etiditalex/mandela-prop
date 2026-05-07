@@ -43,11 +43,11 @@ export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
       const nextUser = data.session?.user ?? null;
       setUser(nextUser);
       if (nextUser) {
-        const { data: rows } = await supabase!
+        const { data: rows } = await (supabase as any)
           .from("saved_properties")
           .select("property_id")
           .eq("user_id", nextUser.id);
-        setSavedIds((rows ?? []).map((row) => row.property_id));
+        setSavedIds((rows ?? []).map((row: { property_id: string }) => row.property_id));
       }
     });
 
@@ -60,11 +60,11 @@ export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
         setSavedIds([]);
         return;
       }
-      const { data: rows } = await supabase!
+      const { data: rows } = await (supabase as any)
         .from("saved_properties")
         .select("property_id")
         .eq("user_id", currentUser.id);
-      setSavedIds((rows ?? []).map((row) => row.property_id));
+      setSavedIds((rows ?? []).map((row: { property_id: string }) => row.property_id));
     });
 
     return () => {
@@ -82,7 +82,7 @@ export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
           if (!user || !supabase) return;
           const isCurrentlySaved = savedIds.includes(propertyId);
           if (isCurrentlySaved) {
-            await supabase
+            await (supabase as any)
               .from("saved_properties")
               .delete()
               .eq("user_id", user.id)
@@ -90,7 +90,7 @@ export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
             setSavedIds((current) => current.filter((id) => id !== propertyId));
             return;
           }
-          await supabase.from("saved_properties").insert({
+          await (supabase as any).from("saved_properties").insert({
             user_id: user.id,
             property_id: propertyId,
           });
@@ -102,7 +102,7 @@ export function SavedPropertiesProvider({ children }: { children: ReactNode }) {
       clearSaved: () => {
         const run = async () => {
           if (!user || !supabase) return;
-          await supabase.from("saved_properties").delete().eq("user_id", user.id);
+          await (supabase as any).from("saved_properties").delete().eq("user_id", user.id);
           setSavedIds([]);
         };
         void run();

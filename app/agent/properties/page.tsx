@@ -754,7 +754,10 @@ export default function AgentPropertiesPage() {
     }
 
     const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
-    const { error: imageError } = await withTimeout(
+    const { error: imageError } = await withTimeout<{
+      data: unknown;
+      error: { message: string } | null;
+    }>(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (supabase as any).from("property_images").insert({
         property_id: propertyId,
@@ -987,7 +990,10 @@ export default function AgentPropertiesPage() {
         .from("property-images")
         .getPublicUrl(path);
 
-      const { error: imageError } = await withTimeout(
+      const { error: imageError } = await withTimeout<{
+        data: unknown;
+        error: { message: string } | null;
+      }>(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (supabase as any).from("property_images").insert({
           property_id: propertyId,

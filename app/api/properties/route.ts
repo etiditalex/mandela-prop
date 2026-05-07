@@ -17,6 +17,16 @@ function slugify(input: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function parseNumeric(value: unknown) {
+  if (value === null || value === undefined) return NaN;
+  if (typeof value === "number") return value;
+  const raw = String(value).trim();
+  if (!raw) return NaN;
+  // Allow common formats like "1,200,000" or "1 200 000"
+  const normalized = raw.replace(/[, ]+/g, "");
+  return Number(normalized);
+}
+
 async function requireStaffOrThrow(supabase: NonNullable<ReturnType<typeof createSupabaseServerClient>>) {
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError) {
@@ -79,9 +89,9 @@ export async function POST(req: Request) {
   const listing_kind = body.listing_kind === "rent" ? "rent" : "sale";
   const status = body.status === "sold" ? "sold" : body.status === "rented" ? "rented" : "available";
 
-  const price = Number(body.price ?? 0);
-  const bedrooms = Number(body.bedrooms ?? 0);
-  const bathrooms = Number(body.bathrooms ?? 0);
+  const price = parseNumeric(body.price);
+  const bedrooms = parseNumeric(body.bedrooms ?? 0);
+  const bathrooms = parseNumeric(body.bathrooms ?? 0);
 
   if (title.length < 3 || description.length < 10 || location.length < 2 || !property_type) {
     return NextResponse.json({ error: "Please fill in all required fields." }, { status: 400 });
@@ -175,9 +185,9 @@ export async function PATCH(req: Request) {
   const size = String(body.size ?? "").trim();
   const listing_kind = body.listing_kind === "rent" ? "rent" : "sale";
   const status = body.status === "sold" ? "sold" : body.status === "rented" ? "rented" : "available";
-  const price = Number(body.price ?? 0);
-  const bedrooms = Number(body.bedrooms ?? 0);
-  const bathrooms = Number(body.bathrooms ?? 0);
+  const price = parseNumeric(body.price);
+  const bedrooms = parseNumeric(body.bedrooms ?? 0);
+  const bathrooms = parseNumeric(body.bathrooms ?? 0);
 
   if (title.length < 3 || description.length < 10 || location.length < 2 || !property_type) {
     return NextResponse.json({ error: "Please fill in all required fields." }, { status: 400 });

@@ -49,6 +49,9 @@ function friendlySupabaseError(message: string) {
       "Confirm rent/bedrooms/bathrooms are plain numbers (e.g. 45000), then try again."
     );
   }
+  if (msg.includes("invalid input syntax for type integer")) {
+    return "Bedrooms/bathrooms must be whole numbers (no decimals). Example: 1, 2, 3.";
+  }
   if (msg.includes("duplicate key") && msg.includes("properties_slug_key")) {
     return "A property with the same title/slug already exists. Try a slightly different title.";
   }
@@ -78,12 +81,27 @@ function parseRequiredNumber(label: string, value: unknown) {
   return parsed;
 }
 
-function parseOptionalNumber(label: string, value: unknown) {
+function parseRequiredInteger(label: string, value: unknown) {
+  const raw = String(value ?? "").trim();
+  const parsed = parseNumberInput(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`${label} must be a whole number. You entered: "${raw || "(empty)"}".`);
+  }
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`${label} must be a whole number (no decimals). You entered: "${raw}".`);
+  }
+  return parsed;
+}
+
+function parseOptionalInteger(label: string, value: unknown) {
   const raw = String(value ?? "").trim();
   if (!raw) return NaN;
   const parsed = parseNumberInput(value);
   if (!Number.isFinite(parsed)) {
-    throw new Error(`${label} must be a number. You entered: "${raw}".`);
+    throw new Error(`${label} must be a whole number. You entered: "${raw}".`);
+  }
+  if (!Number.isInteger(parsed)) {
+    throw new Error(`${label} must be a whole number (no decimals). You entered: "${raw}".`);
   }
   return parsed;
 }
@@ -193,36 +211,42 @@ function RentalEditModal({
     try {
       const supabase = createSupabaseBrowserClient();
       for (let index = 0; index < files.length; index += 1) {
-        const original = files[index];
-        assertImageAcceptable(original);
-        const uploadFile = await compressImageForUpload(original);
-        assertImageAcceptable(uploadFile);
+        await withTimeout(
+          (async () => {
+            const original = files[index];
+            assertImageAcceptable(original);
+            const uploadFile = await compressImageForUpload(original);
+            assertImageAcceptable(uploadFile);
 
-        const extension = uploadFile.name.split(".").pop() || "jpg";
-        const path = `${rental.id}/${crypto.randomUUID()}.${extension}`;
+            const extension = uploadFile.name.split(".").pop() || "jpg";
+            const path = `${rental.id}/${crypto.randomUUID()}.${extension}`;
 
-        const { error: uploadError } = await withTimeout(
-          supabase.storage.from("property-images").upload(path, uploadFile, { upsert: false }),
-          120000,
-          "Image upload is taking too long. Try again, or refresh and add images later.",
+            const { error: uploadError } = await withTimeout(
+              supabase.storage.from("property-images").upload(path, uploadFile, { upsert: false }),
+              300000,
+              "Image upload is taking too long. Try again, or refresh and add images later.",
+            );
+            if (uploadError) throw new Error(friendlySupabaseError(uploadError.message));
+
+            const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
+            const { error: imageError } = await withTimeout<{
+              data: unknown;
+              error: { message: string } | null;
+            }>(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (supabase as any).from("property_images").insert({
+                property_id: rental.id,
+                image_url: publicUrlData.publicUrl,
+                is_primary: images.length === 0 && index === 0,
+              }),
+              20000,
+              "Image save timed out. Refresh and try again.",
+            );
+            if (imageError) throw new Error(friendlySupabaseError(imageError.message));
+          })(),
+          420000,
+          "Image processing/upload is taking too long. Try again, or upload fewer images at once.",
         );
-        if (uploadError) throw new Error(friendlySupabaseError(uploadError.message));
-
-        const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
-        const { error: imageError } = await withTimeout<{
-          data: unknown;
-          error: { message: string } | null;
-        }>(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase as any).from("property_images").insert({
-            property_id: rental.id,
-            image_url: publicUrlData.publicUrl,
-            is_primary: images.length === 0 && index === 0,
-          }),
-          20000,
-          "Image save timed out. Refresh and try again.",
-        );
-        if (imageError) throw new Error(friendlySupabaseError(imageError.message));
       }
       await withTimeout(Promise.resolve(onRefresh()), 15000, "Uploaded, but refresh timed out. Click Refresh to reload.");
     } catch (err) {
@@ -242,8 +266,8 @@ function RentalEditModal({
     let bathroomsNum = NaN;
     try {
       priceNum = parseRequiredNumber("Monthly rent", price);
-      bedroomsNum = parseRequiredNumber("Bedrooms", bedrooms);
-      bathroomsNum = parseRequiredNumber("Bathrooms", bathrooms);
+      bedroomsNum = parseRequiredInteger("Bedrooms", bedrooms);
+      bathroomsNum = parseRequiredInteger("Bathrooms", bathrooms);
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Invalid numeric value.");
       setSaving(false);
@@ -306,6 +330,8 @@ function RentalEditModal({
               <input
                 className="hidden"
                 type="file"
+                id={`r_images_${rental.id}`}
+                name="rental_images"
                 accept="image/*"
                 multiple
                 disabled={uploading}
@@ -501,7 +527,7 @@ export default function AgentRentalsPage() {
       const location = createLocation.trim();
       const description = createDescription.trim();
       const price = parseRequiredNumber("Monthly rent", createPrice);
-      const bathrooms = parseRequiredNumber("Bathrooms", createBathrooms);
+      const bathrooms = parseRequiredInteger("Bathrooms", createBathrooms);
 
       const inferredBedrooms =
         unitType === "Ensuite" ? 0 :
@@ -510,7 +536,7 @@ export default function AgentRentalsPage() {
         unitType === "3 Bedrooms" ? 3 :
         unitType === "4 Bedrooms" ? 4 : 0;
 
-      const bedroomsOverride = parseOptionalNumber("Bedrooms (override)", createBedroomsOverride);
+      const bedroomsOverride = parseOptionalInteger("Bedrooms (override)", createBedroomsOverride);
       const bedrooms = Number.isFinite(bedroomsOverride) ? bedroomsOverride : inferredBedrooms;
 
       if (title.length < 3 || location.length < 2 || description.length < 10) {
@@ -578,7 +604,10 @@ export default function AgentRentalsPage() {
           }
 
           if (failures.length > 0) {
+            const first = failures[0] ?? "One or more images failed to upload.";
+            setError(first);
             setMessage(`Rental created, but ${failures.length} image(s) failed to upload.`);
+            await load();
             return;
           }
           setMessage("Rental created successfully.");

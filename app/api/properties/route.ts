@@ -27,6 +27,13 @@ function parseNumeric(value: unknown) {
   return Number(normalized);
 }
 
+function parseInteger(value: unknown) {
+  const parsed = parseNumeric(value);
+  if (!Number.isFinite(parsed)) return NaN;
+  if (!Number.isInteger(parsed)) return NaN;
+  return parsed;
+}
+
 async function requireStaffOrThrow(supabase: NonNullable<ReturnType<typeof createSupabaseServerClient>>) {
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError) {
@@ -85,7 +92,9 @@ export async function POST(req: Request) {
   const description = String(body.description ?? "").trim();
   const location = String(body.location ?? "").trim();
   const property_type = String(body.property_type ?? "").trim();
-  const size = String(body.size ?? "").trim();
+  const sizeRaw = String(body.size ?? "").trim();
+  // Some deployments have `size` as numeric. Avoid sending empty string which Postgres rejects for numeric types.
+  const size = sizeRaw === "" ? "0" : sizeRaw;
   const listing_kind = body.listing_kind === "rent" ? "rent" : "sale";
   const status = body.status === "sold" ? "sold" : body.status === "rented" ? "rented" : "available";
 
@@ -100,8 +109,8 @@ export async function POST(req: Request) {
   }
 
   const price = parseNumeric(body.price);
-  const bedrooms = parseNumeric(body.bedrooms ?? 0);
-  const bathrooms = parseNumeric(body.bathrooms ?? 0);
+  const bedrooms = parseInteger(body.bedrooms ?? 0);
+  const bathrooms = parseInteger(body.bathrooms ?? 0);
 
   if (title.length < 3 || description.length < 10 || location.length < 2 || !property_type) {
     return NextResponse.json({ error: "Please fill in all required fields." }, { status: 400 });
@@ -111,7 +120,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Price must be a valid number." }, { status: 400 });
   }
   if (!Number.isFinite(bedrooms) || !Number.isFinite(bathrooms)) {
-    return NextResponse.json({ error: "Bedrooms and bathrooms must be valid numbers." }, { status: 400 });
+    return NextResponse.json({ error: "Bedrooms and bathrooms must be whole numbers (no decimals)." }, { status: 400 });
   }
 
   const baseSlug = slugify(title);
@@ -150,7 +159,19 @@ export async function POST(req: Request) {
 
     const code = (error as unknown as { code?: string }).code;
     // eslint-disable-next-line no-console
-    console.warn("[api/properties][POST] insert failed", { code, message: error.message });
+    console.warn("[api/properties][POST] insert failed", {
+      code,
+      message: error.message,
+      payload: {
+        price: payload.price,
+        bedrooms: payload.bedrooms,
+        bathrooms: payload.bathrooms,
+        size: payload.size,
+        listing_kind: payload.listing_kind,
+        status: payload.status,
+        property_type: payload.property_type,
+      },
+    });
     const isUniqueViolation =
       code === "23505" ||
       error.message.toLowerCase().includes("duplicate key") ||
@@ -192,7 +213,9 @@ export async function PATCH(req: Request) {
   const description = String(body.description ?? "").trim();
   const location = String(body.location ?? "").trim();
   const property_type = String(body.property_type ?? "").trim();
-  const size = String(body.size ?? "").trim();
+  const sizeRaw = String(body.size ?? "").trim();
+  // Some deployments have `size` as numeric. Avoid sending empty string which Postgres rejects for numeric types.
+  const size = sizeRaw === "" ? "0" : sizeRaw;
   const listing_kind = body.listing_kind === "rent" ? "rent" : "sale";
   const status = body.status === "sold" ? "sold" : body.status === "rented" ? "rented" : "available";
 
@@ -207,8 +230,8 @@ export async function PATCH(req: Request) {
   }
 
   const price = parseNumeric(body.price);
-  const bedrooms = parseNumeric(body.bedrooms ?? 0);
-  const bathrooms = parseNumeric(body.bathrooms ?? 0);
+  const bedrooms = parseInteger(body.bedrooms ?? 0);
+  const bathrooms = parseInteger(body.bathrooms ?? 0);
 
   if (title.length < 3 || description.length < 10 || location.length < 2 || !property_type) {
     return NextResponse.json({ error: "Please fill in all required fields." }, { status: 400 });
@@ -218,7 +241,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Price must be a valid number." }, { status: 400 });
   }
   if (!Number.isFinite(bedrooms) || !Number.isFinite(bathrooms)) {
-    return NextResponse.json({ error: "Bedrooms and bathrooms must be valid numbers." }, { status: 400 });
+    return NextResponse.json({ error: "Bedrooms and bathrooms must be whole numbers (no decimals)." }, { status: 400 });
   }
 
   const baseSlug = slugify(title);
@@ -260,7 +283,19 @@ export async function PATCH(req: Request) {
 
     const code = (error as unknown as { code?: string }).code;
     // eslint-disable-next-line no-console
-    console.warn("[api/properties][PATCH] update failed", { code, message: error.message });
+    console.warn("[api/properties][PATCH] update failed", {
+      code,
+      message: error.message,
+      payload: {
+        price: payload.price,
+        bedrooms: payload.bedrooms,
+        bathrooms: payload.bathrooms,
+        size: payload.size,
+        listing_kind: payload.listing_kind,
+        status: payload.status,
+        property_type: payload.property_type,
+      },
+    });
     const isUniqueViolation =
       code === "23505" ||
       error.message.toLowerCase().includes("duplicate key") ||

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-async function requireStaffOrThrow(supabase: NonNullable<ReturnType<typeof createSupabaseServerClient>>) {
+async function requireAdminOrThrow(supabase: NonNullable<ReturnType<typeof createSupabaseServerClient>>) {
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError) {
     return { error: authError.message, status: 401 as const, user: null, role: null };
@@ -22,9 +22,9 @@ async function requireStaffOrThrow(supabase: NonNullable<ReturnType<typeof creat
     return { error: profileError.message, status: 400 as const, user: null, role: null };
   }
 
-  if (!profile || (profile.role !== "agent" && profile.role !== "admin")) {
+  if (!profile || profile.role !== "admin") {
     return {
-      error: "Permission denied. Your profile role must be 'agent' or 'admin'.",
+      error: "Permission denied. Admin access required.",
       status: 403 as const,
       user: null,
       role: null,
@@ -40,9 +40,9 @@ export async function GET() {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
   }
 
-  const staff = await requireStaffOrThrow(supabase);
-  if (staff.error) {
-    return NextResponse.json({ error: staff.error }, { status: staff.status });
+  const admin = await requireAdminOrThrow(supabase);
+  if (admin.error) {
+    return NextResponse.json({ error: admin.error }, { status: admin.status });
   }
 
   const { data, error } = await supabase

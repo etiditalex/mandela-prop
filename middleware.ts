@@ -21,11 +21,11 @@ export async function middleware(request: NextRequest) {
 
   const { response, user, role } = await updateSession(request);
 
-  // If role lookup times out (common on flaky networks), don't block navigation for logged-in users.
-  // The pages will still be protected by Supabase RLS.
-  const isStaff = role === "agent" || role === "admin" || (user && role == null);
+  // Admin-only dashboard: only users with profile role "admin" may access `/agent/*`.
+  // If role lookup fails/timeouts, treat as not authorized (safer default for admin areas).
+  const isAdmin = role === "admin";
 
-  if (pathname === "/login" && user && isStaff) {
+  if (pathname === "/login" && user && isAdmin) {
     const nextParam = request.nextUrl.searchParams.get("next");
     let target = "/agent/properties";
     if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
@@ -45,16 +45,9 @@ export async function middleware(request: NextRequest) {
       return redirectResponse;
     }
 
-    if (!isStaff) {
+    if (!isAdmin) {
       const staffOnly = new URL("/staff-only", request.url);
       const redirectResponse = NextResponse.redirect(staffOnly);
-      copyCookies(response, redirectResponse);
-      return redirectResponse;
-    }
-
-    const isUsersArea = pathname === "/agent/users" || pathname.startsWith("/agent/users/");
-    if (isUsersArea && role !== "admin") {
-      const redirectResponse = NextResponse.redirect(new URL("/agent/properties", request.url));
       copyCookies(response, redirectResponse);
       return redirectResponse;
     }

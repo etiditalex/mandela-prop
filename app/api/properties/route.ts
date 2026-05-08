@@ -34,7 +34,7 @@ function parseInteger(value: unknown) {
   return parsed;
 }
 
-async function requireStaffOrThrow(supabase: NonNullable<ReturnType<typeof createSupabaseServerClient>>) {
+async function requireAdminOrThrow(supabase: NonNullable<ReturnType<typeof createSupabaseServerClient>>) {
   const { data: authData, error: authError } = await supabase.auth.getUser();
   if (authError) {
     return { error: authError.message, status: 401 as const, user: null, role: null };
@@ -54,9 +54,9 @@ async function requireStaffOrThrow(supabase: NonNullable<ReturnType<typeof creat
     return { error: profileError.message, status: 400 as const, user: null, role: null };
   }
 
-  if (!profile || (profile.role !== "agent" && profile.role !== "admin")) {
+  if (!profile || profile.role !== "admin") {
     return {
-      error: "Permission denied. Your profile role must be 'agent' or 'admin'.",
+      error: "Permission denied. Admin access required.",
       status: 403 as const,
       user: null,
       role: null,
@@ -74,16 +74,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
   }
 
-  const staff = await requireStaffOrThrow(supabase);
-  if (staff.error) {
+  const admin = await requireAdminOrThrow(supabase);
+  if (admin.error) {
     // eslint-disable-next-line no-console
-    console.warn("[api/properties][POST] staff check failed", { status: staff.status, error: staff.error });
-    return NextResponse.json({ error: staff.error }, { status: staff.status });
+    console.warn("[api/properties][POST] admin check failed", { status: admin.status, error: admin.error });
+    return NextResponse.json({ error: admin.error }, { status: admin.status });
   }
-  const user = staff.user;
+  const user = admin.user;
   if (!user) {
     // eslint-disable-next-line no-console
-    console.warn("[api/properties][POST] staff check missing user", { status: staff.status });
+    console.warn("[api/properties][POST] admin check missing user");
     return NextResponse.json({ error: "Login required." }, { status: 401 });
   }
 
@@ -196,11 +196,11 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
   }
 
-  const staff = await requireStaffOrThrow(supabase);
-  if (staff.error) {
+  const admin = await requireAdminOrThrow(supabase);
+  if (admin.error) {
     // eslint-disable-next-line no-console
-    console.warn("[api/properties][PATCH] staff check failed", { status: staff.status, error: staff.error });
-    return NextResponse.json({ error: staff.error }, { status: staff.status });
+    console.warn("[api/properties][PATCH] admin check failed", { status: admin.status, error: admin.error });
+    return NextResponse.json({ error: admin.error }, { status: admin.status });
   }
 
   const body = (await req.json()) as Record<string, unknown>;
@@ -320,11 +320,11 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: "Supabase is not configured." }, { status: 500 });
   }
 
-  const staff = await requireStaffOrThrow(supabase);
-  if (staff.error) {
+  const admin = await requireAdminOrThrow(supabase);
+  if (admin.error) {
     // eslint-disable-next-line no-console
-    console.warn("[api/properties][DELETE] staff check failed", { status: staff.status, error: staff.error });
-    return NextResponse.json({ error: staff.error }, { status: staff.status });
+    console.warn("[api/properties][DELETE] admin check failed", { status: admin.status, error: admin.error });
+    return NextResponse.json({ error: admin.error }, { status: admin.status });
   }
 
   const url = new URL(req.url);

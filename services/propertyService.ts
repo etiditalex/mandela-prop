@@ -27,7 +27,9 @@ function mapProperty(
     description: row.description,
     features: [],
     amenities: [],
-    coverImage: cover || mockProperties[0]?.coverImage || "",
+    // If no images are uploaded yet, don't fall back to demo data.
+    // UI should show an explicit "No image" state instead of a misleading placeholder.
+    coverImage: cover,
     gallery: ordered.map((item) => item.image_url),
     listingKind: row.listing_kind ?? "sale",
     status: row.status,
@@ -44,11 +46,11 @@ export async function getAllProperties(): Promise<Property[]> {
     .select("*, property_images(*)")
     .order("created_at", { ascending: false });
 
-  if (error || !data) return mockProperties;
+  // Connected DB: don't mask issues with demo data (it makes uploads/debugging very confusing).
+  if (error || !data) return [];
 
   const rows = data as PropertyWithImages[];
-  // Connected DB but no rows yet: public pages would look empty; keep demo listings until you seed or create rows in /agent/properties.
-  if (rows.length === 0) return mockProperties;
+  if (rows.length === 0) return [];
 
   return rows.map((row) =>
     mapProperty(

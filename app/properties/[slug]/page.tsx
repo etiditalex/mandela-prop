@@ -78,13 +78,13 @@ export default async function PropertyDetailsPage({ params }: PropertyDetailsPag
           </Button>
           <div className="border-t border-zinc-200 pt-4">
             <h2 className="text-lg font-semibold">Agent Contact</h2>
-            <p className="mt-2 text-sm text-zinc-600">Sarah K. Mwangi</p>
+            <p className="mt-2 text-sm text-zinc-600">Realtor Karim</p>
             <div className="mt-4 space-y-3 text-sm text-zinc-700">
               <p className="inline-flex items-center gap-2">
-                <PhoneCall size={14} /> +254 700 111 222
+                <PhoneCall size={14} /> 0789579720
               </p>
               <p className="inline-flex items-center gap-2">
-                <Mail size={14} /> sarah@karimrealestate.com
+                <Mail size={14} /> info@karimrealestate.com
               </p>
             </div>
           </div>

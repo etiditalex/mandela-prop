@@ -446,9 +446,9 @@ export default function AgentRentalsPage() {
   const [createSize, setCreateSize] = useState("");
   const [createDescription, setCreateDescription] = useState("");
 
-  const load = async () => {
+  const load = async ({ preserveError = false }: { preserveError?: boolean } = {}) => {
     try {
-      setError(null);
+      if (!preserveError) setError(null);
       const controller = new AbortController();
       const timeoutHandle = setTimeout(() => controller.abort(), 20000);
       const response = await fetch("/api/agent/properties", { signal: controller.signal }).finally(() =>
@@ -607,7 +607,7 @@ export default function AgentRentalsPage() {
             const first = failures[0] ?? "One or more images failed to upload.";
             setError(first);
             setMessage(`Rental created, but ${failures.length} image(s) failed to upload.`);
-            await load();
+            await load({ preserveError: true });
             return;
           }
           setMessage("Rental created successfully.");

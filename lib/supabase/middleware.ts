@@ -55,15 +55,19 @@ export async function updateSession(request: NextRequest) {
 
   let user: Awaited<ReturnType<typeof supabase.auth.getUser>>["data"]["user"] = null;
   try {
-    // Prefer a fast cookie-based session read first; fall back to user lookup if needed.
-    // Both are wrapped in timeouts so middleware never holds up navigation for long.
-    const sessionResult = await withTimeout(supabase.auth.getSession(), 1200).catch(() => null);
-    user = sessionResult?.data?.session?.user ?? null;
-
-    if (!user) {
-      const result = await withTimeout(supabase.auth.getUser(), 2500);
-      user = result.data.user ?? null;
-    }
+    /**
+     * Important: avoid calling multiple auth methods back-to-back in middleware.
+     *
+     * Next.js can issue concurrent requests (prefetch + navigation, parallel route segments, etc).
+     * Supabase Auth uses a storage lock around the auth-token cookie updates; multiple overlapping
+     * calls like `getSession()` + `getUser()` can contend for that lock and trigger
+     * "Lock ... was released because another request stole it" warnings.
+     *
+     * `getUser()` is the single recommended call here because it validates the JWT with the API
+     * and refreshes cookies as needed via the SSR client.
+     */
+    const result = await withTimeout(supabase.auth.getUser(), 2500);
+    user = result.data.user ?? null;
   } catch {
     // Network/proxy/TLS issues can cause `fetch failed` in middleware on some Windows setups.
     // Treat it as unauthenticated so routes can redirect to /login predictably.

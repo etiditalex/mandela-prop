@@ -70,7 +70,7 @@ async function compressImageForUpload(file: File) {
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxDim = 1600;
+    const maxDim = 1400;
     const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
     const targetW = Math.max(1, Math.round(bitmap.width * scale));
     const targetH = Math.max(1, Math.round(bitmap.height * scale));
@@ -83,7 +83,7 @@ async function compressImageForUpload(file: File) {
     ctx.drawImage(bitmap, 0, 0, targetW, targetH);
 
     const blob: Blob | null = await new Promise((resolve) => {
-      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82);
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.78);
     });
     if (!blob) return file;
     if (blob.size >= file.size) return file;

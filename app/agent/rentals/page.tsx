@@ -119,6 +119,27 @@ async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeou
   }
 }
 
+async function runWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+) {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  const runners = Array.from({ length: Math.max(1, limit) }, async () => {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index], index);
+    }
+  });
+
+  await Promise.all(runners);
+  return results;
+}
+
 function assertImageAcceptable(file: File) {
   const maxBytes = 12 * 1024 * 1024; // 12MB
   if (file.size > maxBytes) {
@@ -141,7 +162,7 @@ async function compressImageForUpload(file: File) {
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxDim = 1600;
+    const maxDim = 1400;
     const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
     const targetW = Math.max(1, Math.round(bitmap.width * scale));
     const targetH = Math.max(1, Math.round(bitmap.height * scale));
@@ -154,7 +175,7 @@ async function compressImageForUpload(file: File) {
     ctx.drawImage(bitmap, 0, 0, targetW, targetH);
 
     const blob: Blob | null = await new Promise((resolve) => {
-      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82);
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.78);
     });
     if (!blob) return file;
     if (blob.size >= file.size) return file;
@@ -210,10 +231,10 @@ function RentalEditModal({
     setUploading(true);
     try {
       const supabase = createSupabaseBrowserClient();
-      for (let index = 0; index < files.length; index += 1) {
+      const filesArray = Array.from(files);
+      await runWithConcurrency(filesArray, 3, async (original, index) => {
         await withTimeout(
           (async () => {
-            const original = files[index];
             assertImageAcceptable(original);
             const uploadFile = await compressImageForUpload(original);
             assertImageAcceptable(uploadFile);
@@ -222,7 +243,11 @@ function RentalEditModal({
             const path = `${rental.id}/${crypto.randomUUID()}.${extension}`;
 
             const { error: uploadError } = await withTimeout(
-              supabase.storage.from("property-images").upload(path, uploadFile, { upsert: false }),
+              supabase.storage.from("property-images").upload(path, uploadFile, {
+                upsert: false,
+                contentType: uploadFile.type,
+                cacheControl: "3600",
+              }),
               300000,
               "Image upload is taking too long. Try again, or refresh and add images later.",
             );
@@ -247,7 +272,7 @@ function RentalEditModal({
           420000,
           "Image processing/upload is taking too long. Try again, or upload fewer images at once.",
         );
-      }
+      });
       await withTimeout(Promise.resolve(onRefresh()), 15000, "Uploaded, but refresh timed out. Click Refresh to reload.");
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Unable to upload image.");
@@ -493,7 +518,11 @@ export default function AgentRentalsPage() {
     const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await withTimeout(
-      supabase.storage.from("property-images").upload(path, uploadFile, { upsert: false }),
+      supabase.storage.from("property-images").upload(path, uploadFile, {
+        upsert: false,
+        contentType: uploadFile.type,
+        cacheControl: "3600",
+      }),
       120000,
       "Image upload is taking too long. Try again, or refresh and add images later.",
     );

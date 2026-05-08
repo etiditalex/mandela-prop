@@ -118,6 +118,27 @@ async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeou
   }
 }
 
+async function runWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T, index: number) => Promise<R>,
+) {
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  const runners = Array.from({ length: Math.max(1, limit) }, async () => {
+    while (true) {
+      const index = nextIndex;
+      nextIndex += 1;
+      if (index >= items.length) return;
+      results[index] = await worker(items[index], index);
+    }
+  });
+
+  await Promise.all(runners);
+  return results;
+}
+
 function assertImageAcceptable(file: File) {
   const maxBytes = 12 * 1024 * 1024; // 12MB
   if (file.size > maxBytes) {
@@ -143,7 +164,7 @@ async function compressImageForUpload(file: File) {
 
   try {
     const bitmap = await createImageBitmap(file);
-    const maxDim = 1600; // good balance for listing galleries
+    const maxDim = 1400; // smaller = faster uploads on slow connections
     const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
     const targetW = Math.max(1, Math.round(bitmap.width * scale));
     const targetH = Math.max(1, Math.round(bitmap.height * scale));
@@ -157,7 +178,7 @@ async function compressImageForUpload(file: File) {
 
     const blob: Blob | null = await new Promise((resolve) => {
       // JPEG is most compatible for photos; WebP can be blocked by some tooling.
-      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82);
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.78);
     });
     if (!blob) return file;
 
@@ -447,43 +468,53 @@ function PropertyEditModal({
     setUploadingImage(true);
     try {
       const supabase = createSupabaseBrowserClient();
-      for (let index = 0; index < files.length; index += 1) {
-        const originalFile = files[index];
-        assertImageAcceptable(originalFile);
-        const file = await compressImageForUpload(originalFile);
-        assertImageAcceptable(file);
-        const extension = file.name.split(".").pop() || "jpg";
-        const path = `${property.id}/${crypto.randomUUID()}.${extension}`;
+      const filesArray = Array.from(files);
+      await runWithConcurrency(filesArray, 3, async (originalFile, index) => {
+        await withTimeout(
+          (async () => {
+            assertImageAcceptable(originalFile);
+            const file = await compressImageForUpload(originalFile);
+            assertImageAcceptable(file);
+            const extension = file.name.split(".").pop() || "jpg";
+            const path = `${property.id}/${crypto.randomUUID()}.${extension}`;
 
-        const { error: uploadError } = await withTimeout(
-          supabase.storage.from("property-images").upload(path, file, { upsert: false }),
-          120000,
-          "Image upload is taking too long. Try again, or refresh and add images later.",
+            const { error: uploadError } = await withTimeout(
+              supabase.storage.from("property-images").upload(path, file, {
+                upsert: false,
+                contentType: file.type,
+                cacheControl: "3600",
+              }),
+              120000,
+              "Image upload is taking too long. Try again, or refresh and add images later.",
+            );
+
+            if (uploadError) {
+              throw new Error(friendlySupabaseError(uploadError.message));
+            }
+
+            const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
+            const { error: imageError } = await withTimeout<{
+              data: unknown;
+              error: { message: string } | null;
+            }>(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (supabase as any).from("property_images").insert({
+                property_id: property.id,
+                image_url: publicUrlData.publicUrl,
+                is_primary: images.length === 0 && index === 0,
+              }),
+              20000,
+              "Image save timed out. Refresh and try again.",
+            );
+
+            if (imageError) {
+              throw new Error(friendlySupabaseError(imageError.message));
+            }
+          })(),
+          420000,
+          "Image processing/upload is taking too long. Try again, or upload fewer images at once.",
         );
-
-        if (uploadError) {
-          throw new Error(friendlySupabaseError(uploadError.message));
-        }
-
-        const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
-        const { error: imageError } = await withTimeout<{
-          data: unknown;
-          error: { message: string } | null;
-        }>(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (supabase as any).from("property_images").insert({
-            property_id: property.id,
-            image_url: publicUrlData.publicUrl,
-            is_primary: images.length === 0 && index === 0,
-          }),
-          20000,
-          "Image save timed out. Refresh and try again.",
-        );
-
-        if (imageError) {
-          throw new Error(friendlySupabaseError(imageError.message));
-        }
-      }
+      });
 
       await withTimeout(
         Promise.resolve(onRefresh()),
@@ -908,7 +939,11 @@ export default function AgentPropertiesPage() {
     const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
     const { error: uploadError } = await withTimeout(
-      supabase.storage.from("property-images").upload(path, uploadFile, { upsert: false }),
+      supabase.storage.from("property-images").upload(path, uploadFile, {
+        upsert: false,
+        contentType: uploadFile.type,
+        cacheControl: "3600",
+      }),
       120000,
       "Image upload is taking too long. The listing is created—refresh and add images from the inventory list.",
     );
@@ -1053,14 +1088,13 @@ export default function AgentPropertiesPage() {
           try {
             await withTimeout(
               (async () => {
-                for (let index = 0; index < filesToUpload.length; index += 1) {
-                  const file = filesToUpload[index];
+                await runWithConcurrency(filesToUpload, 2, async (file, index) => {
                   try {
                     await uploadImageForProperty(insertedProperty.id, file, index === 0);
                   } catch (err) {
                     failures.push(err instanceof Error ? err.message : "An image failed to upload.");
                   }
-                }
+                });
               })(),
               420000,
               "Image uploads are taking too long. You can refresh and add images from the inventory list.",
@@ -1143,7 +1177,11 @@ export default function AgentPropertiesPage() {
       const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
       const { error: uploadError } = await withTimeout(
-        supabase.storage.from("property-images").upload(path, uploadFile, { upsert: false }),
+        supabase.storage.from("property-images").upload(path, uploadFile, {
+          upsert: false,
+          contentType: uploadFile.type,
+          cacheControl: "3600",
+        }),
         120000,
         "Image upload is taking too long. Try again, or refresh and add images later.",
       );

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,16 +18,17 @@ function LogoMark() {
   return (
     <Link
       href="/"
-      className="flex h-[84px] w-[10.75rem] flex-col items-center justify-center bg-brand px-3 text-center leading-none shadow-sm"
+      className="flex h-[84px] w-[10.75rem] items-center justify-center px-3"
       aria-label="Home"
     >
-      <span className="text-base font-black tracking-tight text-white">Green</span>
-      <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/90">
-        Haven
-      </span>
-      <span className="mt-0.5 text-[6px] font-semibold uppercase tracking-wider text-white/75">
-        Real Estate
-      </span>
+      <Image
+        src="/brand/logo.jpg"
+        alt="Realtor Karim"
+        width={170}
+        height={84}
+        priority
+        className="h-[84px] w-auto object-contain"
+      />
     </Link>
   );
 }

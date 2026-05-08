@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, Menu } from "lucide-react";
 
@@ -19,15 +20,16 @@ export function PublicNavMobile({ variant = "site", savedCount = 0 }: PublicNavM
     <header className="sticky top-0 z-50 flex w-full items-center justify-between gap-3 bg-[#1a1a1a] px-4 py-3">
       <Link
         href="/"
-        className="flex h-14 min-w-[4.75rem] flex-col items-center justify-center bg-brand px-2 text-center leading-none shadow-sm"
+        className="flex h-14 min-w-[4.75rem] items-center justify-center"
+        aria-label="Home"
       >
-        <span className="text-base font-black tracking-tight text-white">Green</span>
-        <span className="mt-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-white/90">
-          Haven
-        </span>
-        <span className="mt-0.5 text-[6px] font-semibold uppercase tracking-wider text-white/75">
-          Real Estate
-        </span>
+        <Image
+          src="/brand/logo.jpg"
+          alt="Realtor Karim"
+          width={112}
+          height={56}
+          className="h-14 w-auto object-contain"
+        />
       </Link>
       <details className="relative z-[60]">
         <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center text-white [&::-webkit-details-marker]:hidden">

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 
@@ -67,9 +68,17 @@ export function PublicNavDesktopPill({ variant, savedCount = 0 }: PublicNavDeskt
     <div className={shellClass}>
       <Link
         href="/"
-        className={`${isHero ? "text-[15px] sm:text-lg" : "text-lg"} font-semibold tracking-tight text-white`}
+        className="flex items-center"
+        aria-label="Home"
       >
-        GreenHaven
+        <Image
+          src="/brand/logo.jpg"
+          alt="Realtor Karim"
+          width={144}
+          height={48}
+          className={`${isHero ? "h-10 sm:h-12" : "h-12"} w-auto object-contain`}
+          priority={isHero}
+        />
       </Link>
       <nav
         className={`${isHero ? "hidden md:flex" : "hidden lg:flex"} items-center gap-6 text-sm text-white/90`}

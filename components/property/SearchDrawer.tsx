@@ -192,7 +192,7 @@ export function SearchDrawer({
           />
 
           <motion.aside
-            className="absolute right-0 top-0 h-full w-[min(26rem,92vw)] bg-[#123c2d] text-white shadow-2xl"
+            className="absolute right-0 top-0 flex h-full w-[min(26rem,92vw)] flex-col bg-[#123c2d] text-white shadow-2xl"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -223,8 +223,8 @@ export function SearchDrawer({
               </button>
             </div>
 
-            <div className="h-[calc(100%-84px)] overflow-y-auto px-5 py-6">
-              <div className="space-y-10">
+            <div className="flex-1 overflow-y-auto px-5 py-6">
+              <div className="space-y-10 pb-28">
                 <section className="space-y-4">
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/85">
                     Looking to
@@ -384,8 +384,10 @@ export function SearchDrawer({
                   </div>
                 </section>
               </div>
+            </div>
 
-              <div className="mt-10 grid grid-cols-2 gap-4">
+            <div className="sticky bottom-0 border-t border-white/15 bg-[#123c2d]/95 px-5 py-6 backdrop-blur">
+              <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
                   onClick={clearAll}

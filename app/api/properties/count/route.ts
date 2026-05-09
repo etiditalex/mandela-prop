@@ -64,6 +64,12 @@ export async function GET(req: Request) {
     query = query.eq("listing_kind", kind);
   }
 
+  // If a status filter was explicitly supplied but none of the values are valid enum entries,
+  // this should behave as "nothing matches" (not "no status filter").
+  if (statuses.length > 0 && dbStatuses.length === 0) {
+    return NextResponse.json({ count: 0 });
+  }
+
   if (dbStatuses.length) {
     // DB enum values are `available | sold | rented`
     query = query.in("status", dbStatuses);

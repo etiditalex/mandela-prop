@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAllProperties } from "@/services/propertyService";
 
+type PropertyStatus = "available" | "sold" | "rented";
+
 function parseNumeric(value: string | null) {
   if (!value) return NaN;
   const normalized = value.trim().replace(/[, ]+/g, "");
@@ -15,6 +17,10 @@ function parseStatuses(value: string | null) {
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+}
+
+function isPropertyStatus(value: string): value is PropertyStatus {
+  return value === "available" || value === "sold" || value === "rented";
 }
 
 export async function GET(req: Request) {
@@ -31,6 +37,7 @@ export async function GET(req: Request) {
   const bathsMin = parseNumeric(url.searchParams.get("bathsMin"));
 
   const statuses = parseStatuses(statusParam);
+  const dbStatuses = statuses.filter(isPropertyStatus);
 
   const supabase = createSupabaseServerClient();
   if (!supabase) {
@@ -57,9 +64,9 @@ export async function GET(req: Request) {
     query = query.eq("listing_kind", kind);
   }
 
-  if (statuses.length) {
+  if (dbStatuses.length) {
     // DB enum values are `available | sold | rented`
-    query = query.in("status", statuses);
+    query = query.in("status", dbStatuses);
   }
 
   if (location) query = query.eq("location", location);

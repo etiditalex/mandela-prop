@@ -13,6 +13,12 @@ type SearchDrawerProps = {
   priceBounds?: { min: number; max: number };
 };
 
+function formatCountLabel(count: number | null) {
+  if (count === null) return "Show results";
+  if (count === 1) return "Show 1 result";
+  return `Show ${count} results`;
+}
+
 function PillTabs<T extends string>({
   value,
   onChange,
@@ -60,6 +66,7 @@ export function SearchDrawer({
   const [maxPrice, setMaxPrice] = useState<string>("");
   const [bedsMin, setBedsMin] = useState<"any" | "1" | "2" | "3" | "4" | "5">("any");
   const [bathsMin, setBathsMin] = useState<"any" | "1" | "2" | "3" | "4" | "5">("any");
+  const [resultCount, setResultCount] = useState<number | null>(null);
 
   const computedBounds = useMemo(() => {
     if (!priceBounds) return null;
@@ -97,6 +104,52 @@ export function SearchDrawer({
     setBedsMin("any");
     setBathsMin("any");
   };
+
+  const previewParams = useMemo(() => {
+    const params = new URLSearchParams();
+
+    if (lookingTo === "rent") params.set("kind", "rent");
+    if (lookingTo === "buy") params.set("kind", "sale");
+    if (lookingTo === "sold_let") params.set("status", "sold,rented");
+
+    if (lookingFor === "developments") params.set("for", "developments");
+
+    if (location) params.set("location", location);
+    if (type) params.set("type", type);
+    if (minPrice) params.set("minPrice", minPrice);
+    if (maxPrice) params.set("maxPrice", maxPrice);
+    if (bedsMin !== "any") params.set("bedsMin", bedsMin);
+    if (bathsMin !== "any") params.set("bathsMin", bathsMin);
+
+    return params;
+  }, [bathsMin, bedsMin, location, lookingFor, lookingTo, maxPrice, minPrice, type]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (lookingFor !== "properties") {
+      setResultCount(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    setResultCount(null);
+
+    const qs = previewParams.toString();
+    fetch(`/api/properties/count${qs ? `?${qs}` : ""}`, { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: unknown) => {
+        const count =
+          typeof json === "object" && json && "count" in json && typeof (json as { count?: unknown }).count === "number"
+            ? (json as { count: number }).count
+            : null;
+        if (!controller.signal.aborted) setResultCount(count);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setResultCount(null);
+      });
+
+    return () => controller.abort();
+  }, [isOpen, lookingFor, previewParams]);
 
   const apply = () => {
     const params = new URLSearchParams();
@@ -345,7 +398,7 @@ export function SearchDrawer({
                   onClick={apply}
                   className="h-14 rounded-sm bg-white/85 text-sm font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-white"
                 >
-                  Show results
+                  {lookingFor === "properties" ? formatCountLabel(resultCount) : "Show results"}
                 </button>
               </div>
             </div>

@@ -10,6 +10,25 @@ import { getPropertyBySlugFromDb } from "@/services/propertyService";
 import { formatCurrency } from "@/lib/utils";
 import { landCategoryList } from "@/lib/land";
 
+function formatDescriptionAsPoints(description: string) {
+  const lines = description
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length <= 1) {
+    return <p className="mt-4 leading-8 text-zinc-700">{description}</p>;
+  }
+
+  return (
+    <ul className="mt-4 list-disc space-y-2 pl-5 text-zinc-700">
+      {lines.map((line, index) => (
+        <li key={`${line}-${index}`}>{line}</li>
+      ))}
+    </ul>
+  );
+}
+
 function isLandType(type: string) {
   return landCategoryList.some((c) => c.title === type);
 }
@@ -61,7 +80,7 @@ export default async function PropertyDetailsPage({ params }: PropertyDetailsPag
           <div>
             <h1 className="text-4xl font-semibold">{property.title}</h1>
             <p className="mt-2 text-zinc-600">{property.location}</p>
-            <p className="mt-4 leading-8 text-zinc-700">{property.description}</p>
+            {formatDescriptionAsPoints(property.description)}
           </div>
         </div>
         <aside className="space-y-6 rounded-sm border border-zinc-200 bg-white p-6">

@@ -139,6 +139,25 @@ async function runWithConcurrency<T, R>(
   return results;
 }
 
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  attempts = 3,
+  baseDelayMs = 500,
+) {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const delay = baseDelayMs * Math.pow(2, i);
+      // eslint-disable-next-line no-await-in-loop
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+
 function assertImageAcceptable(file: File) {
   const maxBytes = 12 * 1024 * 1024; // 12MB
   if (file.size > maxBytes) {
@@ -478,38 +497,31 @@ function PropertyEditModal({
             const extension = file.name.split(".").pop() || "jpg";
             const path = `${property.id}/${crypto.randomUUID()}.${extension}`;
 
-            const { error: uploadError } = await withTimeout(
-              supabase.storage.from("property-images").upload(path, file, {
-                upsert: false,
-                contentType: file.type,
-                cacheControl: "3600",
-              }),
+            await withTimeout(
+              retryWithBackoff(async () => {
+                const { error } = await supabase.storage.from("property-images").upload(path, file, {
+                  upsert: false,
+                  contentType: file.type,
+                  cacheControl: "3600",
+                });
+                if (error) throw new Error(error.message);
+                return true;
+              }, 3, 700),
               120000,
               "Image upload is taking too long. Try again, or refresh and add images later.",
             );
 
-            if (uploadError) {
-              throw new Error(friendlySupabaseError(uploadError.message));
-            }
-
             const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
-            const { error: imageError } = await withTimeout<{
-              data: unknown;
-              error: { message: string } | null;
-            }>(
+            await retryWithBackoff(async () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (supabase as any).from("property_images").insert({
+              const { error } = await (supabase as any).from("property_images").insert({
                 property_id: property.id,
                 image_url: publicUrlData.publicUrl,
                 is_primary: images.length === 0 && index === 0,
-              }),
-              20000,
-              "Image save timed out. Refresh and try again.",
-            );
-
-            if (imageError) {
-              throw new Error(friendlySupabaseError(imageError.message));
-            }
+              });
+              if (error) throw new Error(error.message);
+              return true;
+            }, 3, 500);
           })(),
           420000,
           "Image processing/upload is taking too long. Try again, or upload fewer images at once.",
@@ -948,31 +960,40 @@ export default function AgentPropertiesPage() {
     formData.append("propertyId", propertyId);
     formData.append("isPrimary", String(isPrimary));
     formData.append("file", uploadFile);
+      // Retry transient failures to improve reliability on flaky networks.
+    const response = await retryWithBackoff(async () => {
+        const resp = await withTimeout(
+          fetch("/api/property-images", {
+            method: "POST",
+            body: formData,
+            credentials: "same-origin",
+            headers: {
+              Accept: "application/json",
+            },
+          }),
+          120000,
+          "Image upload is taking too long. The listing is created—refresh and add images from the inventory list.",
+        );
+        if (!resp.ok) {
+          let errorMessage = `Image upload failed with status ${resp.status}.`;
+          try {
+            const json = (await resp.json().catch(() => null)) as { error?: string } | null;
+            if (json?.error) {
+              errorMessage = friendlySupabaseError(json.error);
+            }
+          } catch {
+            // ignore parse errors
+          }
+          throw new Error(errorMessage);
+        }
 
-    const response = await withTimeout(
-      fetch("/api/property-images", {
-        method: "POST",
-        body: formData,
-        credentials: "same-origin",
-        headers: {
-          Accept: "application/json",
-        },
-      }),
-      120000,
-      "Image upload is taking too long. The listing is created—refresh and add images from the inventory list.",
-    );
+        return resp;
+      }, 3, 700);
 
     if (!response.ok) {
-      let errorMessage = `Image upload failed with status ${response.status}.`;
-      try {
-        const json = (await response.json().catch(() => null)) as { error?: string } | null;
-        if (json?.error) {
-          errorMessage = friendlySupabaseError(json.error);
-        }
-      } catch {
-        // ignore parse errors
-      }
-      throw new Error(errorMessage);
+      const json = (await response.json().catch(() => null)) as { error?: string } | null;
+      const msg = json?.error ? friendlySupabaseError(json.error) : `Image upload failed (status ${response.status})`;
+      throw new Error(msg);
     }
   };
 
@@ -1188,43 +1209,34 @@ export default function AgentPropertiesPage() {
       const extension = uploadFile.name.split(".").pop() || "jpg";
       const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
-      const { error: uploadError } = await withTimeout(
-        supabase.storage.from("property-images").upload(path, uploadFile, {
-          upsert: false,
-          contentType: uploadFile.type,
-          cacheControl: "3600",
-        }),
+      await withTimeout(
+        retryWithBackoff(async () => {
+          const { error } = await supabase.storage.from("property-images").upload(path, uploadFile, {
+            upsert: false,
+            contentType: uploadFile.type,
+            cacheControl: "3600",
+          });
+          if (error) throw new Error(error.message);
+          return true;
+        }, 3, 700),
         120000,
         "Image upload is taking too long. Try again, or refresh and add images later.",
       );
-
-      if (uploadError) {
-        setError(friendlySupabaseError(uploadError.message));
-        return;
-      }
 
       const { data: publicUrlData } = supabase.storage
         .from("property-images")
         .getPublicUrl(path);
 
-      const { error: imageError } = await withTimeout<{
-        data: unknown;
-        error: { message: string } | null;
-      }>(
+      await retryWithBackoff(async () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (supabase as any).from("property_images").insert({
+        const { error } = await (supabase as any).from("property_images").insert({
           property_id: propertyId,
           image_url: publicUrlData.publicUrl,
           is_primary: false,
-        }),
-        20000,
-        "Image save timed out. Refresh and try again.",
-      );
-
-      if (imageError) {
-        setError(friendlySupabaseError(imageError.message));
-        return;
-      }
+        });
+        if (error) throw new Error(error.message);
+        return true;
+      }, 3, 500);
       await load();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to upload image.";

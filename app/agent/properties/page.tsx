@@ -930,9 +930,13 @@ export default function AgentPropertiesPage() {
     }
   };
 
-  const uploadImageForProperty = async (propertyId: string, file: File, isPrimary: boolean) => {
+  const uploadImageForProperty = async (
+    propertyId: string,
+    file: File,
+    isPrimary: boolean,
+    supabase = createSupabaseBrowserClient(),
+  ) => {
     assertImageAcceptable(file);
-    const supabase = createSupabaseBrowserClient();
     const uploadFile = await compressImageForUpload(file);
     assertImageAcceptable(uploadFile);
     const extension = uploadFile.name.split(".").pop() || "jpg";
@@ -1083,19 +1087,18 @@ export default function AgentPropertiesPage() {
         // We upload in the background and refresh once done.
         setMessage("Property created. Uploading images in background…");
         const filesToUpload = [...createImages];
+        const supabase = createSupabaseBrowserClient();
         void (async () => {
           const failures: string[] = [];
           try {
             await withTimeout(
-              (async () => {
-                await runWithConcurrency(filesToUpload, 2, async (file, index) => {
-                  try {
-                    await uploadImageForProperty(insertedProperty.id, file, index === 0);
-                  } catch (err) {
-                    failures.push(err instanceof Error ? err.message : "An image failed to upload.");
-                  }
-                });
-              })(),
+              runWithConcurrency(filesToUpload, Math.min(filesToUpload.length, 4), async (file, index) => {
+                try {
+                  await uploadImageForProperty(insertedProperty.id, file, index === 0, supabase);
+                } catch (err) {
+                  failures.push(err instanceof Error ? err.message : "An image failed to upload.");
+                }
+              }),
               420000,
               "Image uploads are taking too long. You can refresh and add images from the inventory list.",
             );

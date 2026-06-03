@@ -1091,6 +1091,16 @@ export default function AgentPropertiesPage() {
         void (async () => {
           const failures: string[] = [];
           try {
+            const { data: sessionData, error: authSessionError } = await supabase.auth.getSession();
+            if (authSessionError) {
+              throw authSessionError;
+            }
+            if (!sessionData?.session) {
+              throw new Error(
+                "No active Supabase auth session is available for image upload. Sign out and sign in again, then retry.",
+              );
+            }
+
             await withTimeout(
               runWithConcurrency(filesToUpload, Math.min(filesToUpload.length, 4), async (file, index) => {
                 try {
@@ -1107,8 +1117,13 @@ export default function AgentPropertiesPage() {
           }
 
           if (failures.length > 0) {
+            console.error("Property image upload failures", {
+              propertyId: insertedProperty.id,
+              failures,
+            });
+            const firstFailure = failures[0] ?? "An unknown image upload error occurred.";
             setMessage(
-              `Property created, but ${failures.length} image(s) failed to upload. You can add them from the inventory list.`,
+              `Property created, but ${failures.length} image(s) failed to upload: ${firstFailure}. You can add them from the inventory list.`,
             );
             return;
           }

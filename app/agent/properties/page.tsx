@@ -1042,9 +1042,14 @@ export default function AgentPropertiesPage() {
         setCreating(false);
         return;
       }
-      const priceNum = parseNumberInput(formData.get("price"));
+      const priceRaw = String(formData.get("price") ?? "").trim();
+      const priceNum = parseNumberInput(priceRaw);
       if (!Number.isFinite(priceNum) || priceNum < 0) {
-        setError("Price must be a valid non-negative number.");
+        setError(
+          listingCategory === "land"
+            ? "For land listings, Price must be numeric (e.g. 2000000). Put measurements like 50*100, 100*100, or acre values in the Size field."
+            : "Price must be a valid non-negative number.",
+        );
         setCreating(false);
         return;
       }
@@ -1403,7 +1408,19 @@ export default function AgentPropertiesPage() {
                     </select>
                   </label>
                 )}
-                <Input id="price" name="price" type="number" label="Price" required />
+                <Input
+                  id="price"
+                  name="price"
+                  type="number"
+                  label="Price"
+                  required
+                />
+                {listingCategory === "land" ? (
+                  <p className="text-xs text-zinc-500 md:col-span-2">
+                    For land listings, Price must still be numeric. Enter land measurements
+                    like 50*100, 100*100, or acreage in the Size field only.
+                  </p>
+                ) : null}
                 {listingCategory !== "land" && (
                   <Input id="bedrooms" name="bedrooms" type="number" label="Bedrooms" required />
                 )}

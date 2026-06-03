@@ -761,13 +761,22 @@ function PropertyEditModal({
         )}
         <Input
           id="edit_size"
-          label={listingCategory === "land" ? "Size (e.g., 50*100, quarter, half, acre)" : "Size (sqft)"}
+          label={
+            listingCategory === "land"
+              ? "Size (acreage or dimensions, e.g. 50*100, 100*100, 1 acre)"
+              : "Size (sqft)"
+          }
           type={listingCategory === "land" ? "text" : "number"}
           value={size}
           onChange={(e) => setSize(e.target.value)}
-          placeholder={listingCategory === "land" ? "e.g., 50*100" : ""}
+          placeholder={listingCategory === "land" ? "e.g., 50*100 or 1 acre" : ""}
           required
         />
+        <label className="grid gap-2 text-xs text-zinc-500 md:col-span-2">
+          {listingCategory === "land"
+            ? "Use acreage or dimension format for land listings; do not enter square feet."
+            : "Enter the floor area in square feet for property listings."}
+        </label>
         <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="edit_description">
           <span className="font-medium">Description</span>
           <textarea
@@ -1405,10 +1414,19 @@ export default function AgentPropertiesPage() {
                   id="size"
                   name="size"
                   type={listingCategory === "land" ? "text" : "number"}
-                  label={listingCategory === "land" ? "Size (e.g., 50*100, quarter, half, acre)" : "Size (sqft)"}
-                  placeholder={listingCategory === "land" ? "e.g., 50*100" : ""}
+                  label={
+                    listingCategory === "land"
+                      ? "Size (acreage or dimensions, e.g. 50*100, 100*100, 1 acre)"
+                      : "Size (sqft)"
+                  }
+                  placeholder={listingCategory === "land" ? "e.g., 50*100 or 1 acre" : ""}
                   required
                 />
+                <label className="grid gap-2 text-xs text-zinc-500 md:col-span-2">
+                  {listingCategory === "land"
+                    ? "Use acreage or dimension format for land listings; do not enter square feet."
+                    : "Enter the floor area in square feet for property listings."}
+                </label>
                 <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="description">
                   <span className="font-medium">Description</span>
                   <textarea

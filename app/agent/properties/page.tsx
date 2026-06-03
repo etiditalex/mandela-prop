@@ -1412,13 +1412,20 @@ export default function AgentPropertiesPage() {
                   id="price"
                   name="price"
                   type="number"
-                  label="Price"
+                  min={0}
+                  step={1}
+                  label={
+                    listingCategory === "land"
+                      ? "Price (numeric currency amount; land measurements go in Size)"
+                      : "Price"
+                  }
+                  placeholder="e.g. 2000000"
                   required
                 />
                 {listingCategory === "land" ? (
                   <p className="text-xs text-zinc-500 md:col-span-2">
-                    For land listings, Price must still be numeric. Enter land measurements
-                    like 50*100, 100*100, or acreage in the Size field only.
+                    Land listings still require a numeric Price. Enter acreage or dimensions in the Size field
+                    (e.g. 50*100, 100*100, 1 acre); do not put size values in Price.
                   </p>
                 ) : null}
                 {listingCategory !== "land" && (

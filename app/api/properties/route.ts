@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAllProperties } from "@/services/propertyService";
+import { isLandType } from "@/lib/land";
 
 export async function GET() {
   const properties = await getAllProperties();
@@ -117,7 +118,22 @@ export async function POST(req: Request) {
   }
 
   if (!Number.isFinite(price)) {
-    return NextResponse.json({ error: "Price must be a valid number." }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: isLandType(property_type)
+          ? "Price must be a numeric amount for land listings (e.g. 2000000). Put acreage/dimensions like 50*100 or 1 acre in the Size field."
+          : "Price must be a valid number.",
+      },
+      { status: 400 },
+    );
+  }
+  if (isLandType(property_type) && sizeRaw === "") {
+    return NextResponse.json(
+      {
+        error: "Size is required for land listings. Use acreage or dimensions like 50*100 or 1 acre.",
+      },
+      { status: 400 },
+    );
   }
   if (!Number.isFinite(bedrooms) || !Number.isFinite(bathrooms)) {
     return NextResponse.json({ error: "Bedrooms and bathrooms must be whole numbers (no decimals)." }, { status: 400 });
@@ -238,7 +254,22 @@ export async function PATCH(req: Request) {
   }
 
   if (!Number.isFinite(price)) {
-    return NextResponse.json({ error: "Price must be a valid number." }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: isLandType(property_type)
+          ? "Price must be a numeric amount for land listings (e.g. 2000000). Put acreage/dimensions like 50*100 or 1 acre in the Size field."
+          : "Price must be a valid number.",
+      },
+      { status: 400 },
+    );
+  }
+  if (isLandType(property_type) && sizeRaw === "") {
+    return NextResponse.json(
+      {
+        error: "Size is required for land listings. Use acreage or dimensions like 50*100 or 1 acre.",
+      },
+      { status: 400 },
+    );
   }
   if (!Number.isFinite(bedrooms) || !Number.isFinite(bathrooms)) {
     return NextResponse.json({ error: "Bedrooms and bathrooms must be whole numbers (no decimals)." }, { status: 400 });

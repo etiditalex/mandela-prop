@@ -210,8 +210,8 @@ create policy "properties_agent_manage_own"
 on public.properties
 for all
 to authenticated
-using (agent_id = auth.uid() and public.current_user_role() in ('agent', 'admin'))
-with check (agent_id = auth.uid() and public.current_user_role() in ('agent', 'admin'));
+using (agent_id = auth.uid())
+with check (agent_id = auth.uid());
 
 drop policy if exists "properties_admin_all" on public.properties;
 create policy "properties_admin_all"
@@ -228,13 +228,16 @@ on public.property_images
 for select
 to anon, authenticated
 using (
-  exists (
-    select 1
-    from public.properties p
-    where p.id = property_images.property_id
-      and p.status = 'available'
-  )
-);
+   (
+     exists (
+       select 1
+       from public.properties p
+       where p.id = property_images.property_id
+         and p.status = 'available'
+     )
+   )
+   or public.current_user_role() = 'admin'
+ );
 
 drop policy if exists "property_images_agent_manage_own_property" on public.property_images;
 create policy "property_images_agent_manage_own_property"

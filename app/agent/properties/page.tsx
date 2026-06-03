@@ -930,49 +930,40 @@ export default function AgentPropertiesPage() {
     }
   };
 
-  const uploadImageForProperty = async (
-    propertyId: string,
-    file: File,
-    isPrimary: boolean,
-    supabase = createSupabaseBrowserClient(),
-  ) => {
+  const uploadImageForProperty = async (propertyId: string, file: File, isPrimary: boolean) => {
     assertImageAcceptable(file);
     const uploadFile = await compressImageForUpload(file);
     assertImageAcceptable(uploadFile);
-    const extension = uploadFile.name.split(".").pop() || "jpg";
-    const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
-    const { error: uploadError } = await withTimeout(
-      supabase.storage.from("property-images").upload(path, uploadFile, {
-        upsert: false,
-        contentType: uploadFile.type,
-        cacheControl: "3600",
+    const formData = new FormData();
+    formData.append("propertyId", propertyId);
+    formData.append("isPrimary", String(isPrimary));
+    formData.append("file", uploadFile);
+
+    const response = await withTimeout(
+      fetch("/api/property-images", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
+        headers: {
+          Accept: "application/json",
+        },
       }),
       120000,
       "Image upload is taking too long. The listing is created—refresh and add images from the inventory list.",
     );
 
-    if (uploadError) {
-      throw new Error(friendlySupabaseError(uploadError.message));
-    }
-
-    const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
-    const { error: imageError } = await withTimeout<{
-      data: unknown;
-      error: { message: string } | null;
-    }>(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (supabase as any).from("property_images").insert({
-        property_id: propertyId,
-        image_url: publicUrlData.publicUrl,
-        is_primary: isPrimary,
-      }),
-      20000,
-      "Image save timed out. The listing is created—refresh to confirm, then add images later.",
-    );
-
-    if (imageError) {
-      throw new Error(friendlySupabaseError(imageError.message));
+    if (!response.ok) {
+      let errorMessage = `Image upload failed with status ${response.status}.`;
+      try {
+        const json = (await response.json().catch(() => null)) as { error?: string } | null;
+        if (json?.error) {
+          errorMessage = friendlySupabaseError(json.error);
+        }
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(errorMessage);
     }
   };
 
@@ -1087,24 +1078,13 @@ export default function AgentPropertiesPage() {
         // We upload in the background and refresh once done.
         setMessage("Property created. Uploading images in background…");
         const filesToUpload = [...createImages];
-        const supabase = createSupabaseBrowserClient();
         void (async () => {
           const failures: string[] = [];
           try {
-            const { data: sessionData, error: authSessionError } = await supabase.auth.getSession();
-            if (authSessionError) {
-              throw authSessionError;
-            }
-            if (!sessionData?.session) {
-              throw new Error(
-                "No active Supabase auth session is available for image upload. Sign out and sign in again, then retry.",
-              );
-            }
-
             await withTimeout(
               runWithConcurrency(filesToUpload, Math.min(filesToUpload.length, 4), async (file, index) => {
                 try {
-                  await uploadImageForProperty(insertedProperty.id, file, index === 0, supabase);
+                  await uploadImageForProperty(insertedProperty.id, file, index === 0);
                 } catch (err) {
                   failures.push(err instanceof Error ? err.message : "An image failed to upload.");
                 }

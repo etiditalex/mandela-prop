@@ -1426,20 +1426,15 @@ export default function AgentPropertiesPage() {
                   type="number"
                   min={0}
                   step={1}
-                  label={
-                    listingCategory === "land"
-                      ? "Price (numeric currency amount; land measurements go in Size)"
-                      : "Price"
-                  }
+                  label="Price"
                   placeholder="e.g. 2000000"
                   required
                 />
-                {listingCategory === "land" ? (
-                  <p className="text-xs text-zinc-500 md:col-span-2">
-                    Land listings still require a numeric Price. Enter acreage or dimensions in the Size field
-                    (e.g. 50*100, 100*100, 1 acre); do not put size values in Price.
+                {listingCategory === "land" && (
+                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 md:col-span-2">
+                    <span className="font-semibold">Land price:</span> Enter the property price as a numeric value only (currency amount). Do not enter measurements here.
                   </p>
-                ) : null}
+                )}
                 {listingCategory !== "land" && (
                   <Input id="bedrooms" name="bedrooms" type="number" label="Bedrooms" required />
                 )}
@@ -1450,19 +1445,15 @@ export default function AgentPropertiesPage() {
                   id="size"
                   name="size"
                   type={listingCategory === "land" ? "text" : "number"}
-                  label={
-                    listingCategory === "land"
-                      ? "Size (acreage or dimensions, e.g. 50*100, 100*100, 1 acre)"
-                      : "Size (sqft)"
-                  }
-                  placeholder={listingCategory === "land" ? "e.g., 50*100 or 1 acre" : ""}
+                  label={listingCategory === "land" ? "Land Size / Dimensions" : "Size (sqft)"}
+                  placeholder={listingCategory === "land" ? "e.g., 50x100, 1 acre, 2.5 hectares" : ""}
                   required
                 />
-                <label className="grid gap-2 text-xs text-zinc-500 md:col-span-2">
-                  {listingCategory === "land"
-                    ? "Use acreage or dimension format for land listings; do not enter square feet."
-                    : "Enter the floor area in square feet for property listings."}
-                </label>
+                {listingCategory === "land" && (
+                  <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2 md:col-span-2">
+                    <span className="font-semibold">Land size format:</span> Enter acreage (e.g., &quot;1 acre&quot;), dimensions (e.g., &quot;50x100 ft&quot;), or hectares (e.g., &quot;0.5 hectares&quot;). This field is flexible.
+                  </p>
+                )}
                 <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="description">
                   <span className="font-medium">Description</span>
                   <textarea

@@ -42,12 +42,15 @@ create table if not exists public.properties (
   property_type text not null,
   bedrooms integer not null default 0 check (bedrooms >= 0),
   bathrooms integer not null default 0 check (bathrooms >= 0),
+  -- For land listings, price is numeric only; land acreage/dimensions/hectares go in `size`.
   size text not null,
   listing_kind public.listing_kind not null default 'sale',
   status public.property_status not null default 'available',
   agent_id uuid not null references public.profiles(id) on delete restrict,
   created_at timestamptz not null default now()
 );
+
+-- Land/property size stored as free-form text for values like "1 acre", "50x100 ft", or "0.5 hectares".
 
 -- Backfill/migrate existing databases where `properties` already exists.
 alter table public.properties

@@ -127,7 +127,10 @@ export async function POST(req: Request) {
       price = 0;
     } else {
       return NextResponse.json(
-        { error: "Price must be a valid number." },
+        {
+          error:
+            "Price must be a valid number. For land listings, keep measurements in the Size field and use numeric values only in Price.",
+        },
         { status: 400 },
       );
     }
@@ -135,7 +138,8 @@ export async function POST(req: Request) {
   if (isLandType(property_type) && sizeRaw === "") {
     return NextResponse.json(
       {
-        error: "Size is required for land listings. Use acreage or dimensions like 50*100 or 1 acre.",
+        error:
+          'Size is required for land listings. Enter acreage (e.g. "1 acre"), dimensions (e.g. "50x100 ft"), or hectares (e.g. "0.5 hectares").',
       },
       { status: 400 },
     );
@@ -268,7 +272,10 @@ export async function PATCH(req: Request) {
       price = 0;
     } else {
       return NextResponse.json(
-        { error: "Price must be a valid number." },
+        {
+          error:
+            "Price must be a valid number. For land listings, keep measurements in the Size field and use numeric values only in Price.",
+        },
         { status: 400 },
       );
     }
@@ -276,7 +283,8 @@ export async function PATCH(req: Request) {
   if (isLandType(property_type) && sizeRaw === "") {
     return NextResponse.json(
       {
-        error: "Size is required for land listings. Use acreage or dimensions like 50*100 or 1 acre.",
+        error:
+          'Size is required for land listings. Enter acreage (e.g. "1 acre"), dimensions (e.g. "50x100 ft"), or hectares (e.g. "0.5 hectares").',
       },
       { status: 400 },
     );

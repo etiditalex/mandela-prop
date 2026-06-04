@@ -1441,14 +1441,31 @@ export default function AgentPropertiesPage() {
                 {listingCategory !== "land" && (
                   <Input id="bathrooms" name="bathrooms" type="number" label="Bathrooms" required />
                 )}
-                <Input
-                  id="size"
-                  name="size"
-                  type={listingCategory === "land" ? "text" : "number"}
-                  label={listingCategory === "land" ? "Land Size / Dimensions" : "Size (sqft)"}
-                  placeholder={listingCategory === "land" ? "e.g., 50x100, 1 acre, 2.5 hectares" : ""}
-                  required
-                />
+                {listingCategory === "land" ? (
+                  <label className="grid gap-2 text-sm text-zinc-700" htmlFor="size">
+                    <span className="font-medium">Land Size / Dimensions</span>
+                    <input
+                      id="size"
+                      name="size"
+                      type="text"
+                      inputMode="text"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      placeholder="e.g., 50x100, 1 acre, 2 acres"
+                      required
+                      className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    />
+                  </label>
+                ) : (
+                  <Input
+                    id="size"
+                    name="size"
+                    type="number"
+                    label="Size (sqft)"
+                    placeholder=""
+                    required
+                  />
+                )}
                 {listingCategory === "land" && (
                   <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2 md:col-span-2">
                     <span className="font-semibold">Land size format:</span> Enter acreage (e.g., &quot;1 acre&quot;), dimensions (e.g., &quot;50x100 ft&quot;), or hectares (e.g., &quot;0.5 hectares&quot;). This field is flexible.

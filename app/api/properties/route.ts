@@ -99,8 +99,12 @@ export async function POST(req: Request) {
   const listing_kind = body.listing_kind === "rent" ? "rent" : "sale";
   const status = body.status === "sold" ? "sold" : body.status === "rented" ? "rented" : "available";
 
+  // For land listings allow empty price (we'll store 0). For non-land require price present.
   if (typeof body.price === "string" && body.price.trim() === "") {
-    return NextResponse.json({ error: "Price is required.", code: "VALIDATION_PRICE_EMPTY" }, { status: 400 });
+    if (!isLandType(property_type)) {
+      return NextResponse.json({ error: "Price is required.", code: "VALIDATION_PRICE_EMPTY" }, { status: 400 });
+    }
+    // leave price as empty string for now; parseNumeric below will handle it
   }
   if (typeof body.bedrooms === "string" && body.bedrooms.trim() === "") {
     return NextResponse.json({ error: "Bedrooms is required.", code: "VALIDATION_BEDROOMS_EMPTY" }, { status: 400 });
@@ -109,7 +113,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Bathrooms is required.", code: "VALIDATION_BATHROOMS_EMPTY" }, { status: 400 });
   }
 
-  const price = parseNumeric(body.price);
+  let price = parseNumeric(body.price);
   const bedrooms = parseInteger(body.bedrooms ?? 0);
   const bathrooms = parseInteger(body.bathrooms ?? 0);
 
@@ -118,14 +122,15 @@ export async function POST(req: Request) {
   }
 
   if (!Number.isFinite(price)) {
-    return NextResponse.json(
-      {
-        error: isLandType(property_type)
-          ? "Price must be a numeric amount for land listings (e.g. 2000000). Put acreage/dimensions like 50*100 or 1 acre in the Size field."
-          : "Price must be a valid number.",
-      },
-      { status: 400 },
-    );
+    if (isLandType(property_type)) {
+      // Treat missing/invalid price for land as 0 so the record can be created.
+      price = 0;
+    } else {
+      return NextResponse.json(
+        { error: "Price must be a valid number." },
+        { status: 400 },
+      );
+    }
   }
   if (isLandType(property_type) && sizeRaw === "") {
     return NextResponse.json(
@@ -235,8 +240,12 @@ export async function PATCH(req: Request) {
   const listing_kind = body.listing_kind === "rent" ? "rent" : "sale";
   const status = body.status === "sold" ? "sold" : body.status === "rented" ? "rented" : "available";
 
+  // For land listings allow empty price (we'll store 0). For non-land require price present.
   if (typeof body.price === "string" && body.price.trim() === "") {
-    return NextResponse.json({ error: "Price is required.", code: "VALIDATION_PRICE_EMPTY" }, { status: 400 });
+    if (!isLandType(property_type)) {
+      return NextResponse.json({ error: "Price is required.", code: "VALIDATION_PRICE_EMPTY" }, { status: 400 });
+    }
+    // leave price as empty string for now; parseNumeric below will handle it
   }
   if (typeof body.bedrooms === "string" && body.bedrooms.trim() === "") {
     return NextResponse.json({ error: "Bedrooms is required.", code: "VALIDATION_BEDROOMS_EMPTY" }, { status: 400 });
@@ -245,7 +254,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Bathrooms is required.", code: "VALIDATION_BATHROOMS_EMPTY" }, { status: 400 });
   }
 
-  const price = parseNumeric(body.price);
+  let price = parseNumeric(body.price);
   const bedrooms = parseInteger(body.bedrooms ?? 0);
   const bathrooms = parseInteger(body.bathrooms ?? 0);
 
@@ -254,14 +263,15 @@ export async function PATCH(req: Request) {
   }
 
   if (!Number.isFinite(price)) {
-    return NextResponse.json(
-      {
-        error: isLandType(property_type)
-          ? "Price must be a numeric amount for land listings (e.g. 2000000). Put acreage/dimensions like 50*100 or 1 acre in the Size field."
-          : "Price must be a valid number.",
-      },
-      { status: 400 },
-    );
+    if (isLandType(property_type)) {
+      // Treat missing/invalid price for land as 0 so the record can be updated.
+      price = 0;
+    } else {
+      return NextResponse.json(
+        { error: "Price must be a valid number." },
+        { status: 400 },
+      );
+    }
   }
   if (isLandType(property_type) && sizeRaw === "") {
     return NextResponse.json(

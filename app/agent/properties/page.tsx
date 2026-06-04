@@ -476,6 +476,48 @@ function PropertyEditModal({
   const [saving, setSaving] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingImageId, setDeletingImageId] = useState<string | null>(null);
+
+  const onDeleteImage = async (imageId: string) => {
+    try {
+      setDeletingImageId(imageId);
+      setLocalError(null);
+      const response = await fetch(`/api/property-images?imageId=${imageId}&propertyId=${property.id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        const json = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(json?.error || `Failed to delete image (HTTP ${response.status})`);
+      }
+      await onRefresh();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Unable to delete image.");
+    } finally {
+      setDeletingImageId(null);
+    }
+  };
+
+  const onSetPrimaryImage = async (imageId: string) => {
+    try {
+      setLocalError(null);
+      const response = await fetch("/api/property-images", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          imageId,
+          propertyId: property.id,
+          isPrimary: true,
+        }),
+      });
+      if (!response.ok) {
+        const json = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(json?.error || `Failed to update image (HTTP ${response.status})`);
+      }
+      await onRefresh();
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Unable to set primary image.");
+    }
+  };
 
   const images = (property.property_images ?? [])
     .slice()
@@ -642,7 +684,7 @@ function PropertyEditModal({
               {images.map((img) => (
                 <div
                   key={img.id}
-                  className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white"
+                  className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:shadow-md"
                 >
                   <img
                     src={img.image_url ?? ""}
@@ -655,6 +697,28 @@ function PropertyEditModal({
                       Primary
                     </span>
                   ) : null}
+                  <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/50 opacity-0 transition group-hover:opacity-100">
+                    {!img.is_primary && (
+                      <button
+                        type="button"
+                        onClick={() => void onSetPrimaryImage(img.id)}
+                        disabled={deletingImageId === img.id}
+                        className="rounded px-2 py-1 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition disabled:opacity-50"
+                        title="Set as primary image"
+                      >
+                        Set Primary
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => void onDeleteImage(img.id)}
+                      disabled={deletingImageId === img.id}
+                      className="rounded px-2 py-1 text-[10px] font-semibold text-white bg-red-600 hover:bg-red-700 transition disabled:opacity-50"
+                      title="Delete image"
+                    >
+                      {deletingImageId === img.id ? "..." : "Delete"}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

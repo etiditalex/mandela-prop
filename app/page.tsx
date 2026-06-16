@@ -12,7 +12,7 @@ import { getAllProperties } from "@/services/propertyService";
 
 /** Remote hero (public file may be missing in some clones). Must stay on allowed `images` host. */
 const HERO_GREEN_LAND =
-  "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=2000&q=80";
+  "https://res.cloudinary.com/dyfnobo9r/image/upload/v1781594394/land_for_sale_-home_page_tjwng5.jpg";
 
 export const dynamic = "force-dynamic";
 

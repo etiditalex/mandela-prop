@@ -35,6 +35,7 @@ export type Database = {
           title: string;
           slug: string;
           description: string;
+          meta_description: string;
           price: number;
           location: string;
           property_type: string;
@@ -51,6 +52,7 @@ export type Database = {
           title: string;
           slug: string;
           description: string;
+          meta_description: string;
           price: number;
           location: string;
           property_type: string;

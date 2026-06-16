@@ -42,6 +42,7 @@ export default function SavedPropertiesPage() {
             baths: item.bathrooms,
             areaSqFt: item.size,
             description: item.description,
+            metaDescription: (item as { meta_description?: string }).meta_description ?? "",
             features: [],
             amenities: [],
             coverImage: sorted[0]?.image_url ?? properties[0].coverImage,

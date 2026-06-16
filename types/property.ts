@@ -15,6 +15,7 @@ export interface Property {
   baths: number;
   areaSqFt: number | string;
   description: string;
+  metaDescription?: string;
   features: string[];
   amenities: PropertyAmenity[];
   coverImage: string;

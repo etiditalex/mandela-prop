@@ -6,28 +6,10 @@ import { Button } from "@/components/ui/Button";
 import { SavePropertyButton } from "@/components/property/SavePropertyButton";
 import { InquiryForm } from "@/components/property/InquiryForm";
 import { PropertyImageGallery } from "@/components/property/PropertyImageGallery";
+import { PropertyDescriptionContent } from "@/components/property/PropertyDescriptionContent";
 import { getPropertyBySlugFromDb } from "@/services/propertyService";
 import { formatCurrency } from "@/lib/utils";
 import { landCategoryList } from "@/lib/land";
-
-function formatDescriptionAsPoints(description: string) {
-  const lines = description
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (lines.length <= 1) {
-    return <p className="mt-4 leading-8 text-zinc-700">{description}</p>;
-  }
-
-  return (
-    <ul className="mt-4 list-disc space-y-2 pl-5 text-zinc-700">
-      {lines.map((line, index) => (
-        <li key={`${line}-${index}`}>{line}</li>
-      ))}
-    </ul>
-  );
-}
 
 function isLandType(type: string) {
   return landCategoryList.some((c) => c.title === type);
@@ -46,7 +28,7 @@ export async function generateMetadata({
   if (!property) return { title: "Property Not Found" };
   return {
     title: property.title,
-    description: property.description,
+    description: property.metaDescription || property.description,
   };
 }
 
@@ -62,7 +44,10 @@ export default async function PropertyDetailsPage({ params }: PropertyDetailsPag
           <div>
             <h1 className="text-4xl font-semibold">{property.title}</h1>
             <p className="mt-2 text-zinc-600">{property.location}</p>
-            {formatDescriptionAsPoints(property.description)}
+            <PropertyDescriptionContent
+              metaDescription={property.metaDescription}
+              description={property.description}
+            />
           </div>
         </div>
         <aside className="space-y-6 rounded-sm border border-zinc-200 bg-white p-6">

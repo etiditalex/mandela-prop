@@ -53,6 +53,7 @@ export async function GET() {
       title,
       slug,
       description,
+      meta_description,
       price,
       location,
       property_type,

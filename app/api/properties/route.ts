@@ -91,6 +91,7 @@ export async function POST(req: Request) {
   const body = (await req.json()) as Record<string, unknown>;
   const title = String(body.title ?? "").trim();
   const description = String(body.description ?? "").trim();
+  const meta_description = String(body.meta_description ?? "").trim();
   const location = String(body.location ?? "").trim();
   const property_type = String(body.property_type ?? "").trim();
   const sizeRaw = String(body.size ?? "").trim();
@@ -157,6 +158,7 @@ export async function POST(req: Request) {
     title,
     slug: baseSlug,
     description,
+    meta_description,
     price: Math.max(0, price),
     location,
     property_type,
@@ -239,6 +241,7 @@ export async function PATCH(req: Request) {
 
   const title = String(body.title ?? "").trim();
   const description = String(body.description ?? "").trim();
+  const meta_description = String(body.meta_description ?? "").trim();
   const location = String(body.location ?? "").trim();
   const property_type = String(body.property_type ?? "").trim();
   const sizeRaw = String(body.size ?? "").trim();
@@ -305,6 +308,7 @@ export async function PATCH(req: Request) {
     title,
     slug: baseSlug,
     description,
+    meta_description,
     price: Math.max(0, price),
     location,
     property_type,

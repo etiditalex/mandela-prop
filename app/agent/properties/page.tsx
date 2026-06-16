@@ -265,6 +265,9 @@ async function uploadPropertyImageViaApi(propertyId: string, file: File, isPrima
   }, 3, 700);
 }
 
+const DESCRIPTION_FORMAT_HINT =
+  "One item per line. Use your own markers — bullets (•), numbers (1. 2.), or letters (a. b.). The site displays your text exactly as entered.";
+
 function DemoPropertyEditModal({
   property,
   onClose,
@@ -275,6 +278,7 @@ function DemoPropertyEditModal({
   onCreated: () => void;
 }) {
   const [title, setTitle] = useState(property.title);
+  const [metaDescription, setMetaDescription] = useState("");
   const [description, setDescription] = useState(property.description);
   const [location, setLocation] = useState(property.location);
   const [price, setPrice] = useState(String(property.price));
@@ -329,6 +333,7 @@ function DemoPropertyEditModal({
           title: titleTrimmed,
           slug,
           description: description.trim(),
+          meta_description: metaDescription.trim(),
           price: priceNum,
           location: location.trim(),
           property_type: residentialType,
@@ -466,6 +471,17 @@ function DemoPropertyEditModal({
           onChange={(e) => setSize(e.target.value)}
           required
         />
+        <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="demo_meta_description">
+          <span className="font-medium">Meta description</span>
+          <textarea
+            id="demo_meta_description"
+            value={metaDescription}
+            onChange={(e) => setMetaDescription(e.target.value)}
+            rows={2}
+            placeholder="Short SEO summary shown at the top of the listing (1–2 sentences)."
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          />
+        </label>
         <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="demo_description">
           <span className="font-medium">Description</span>
           <textarea
@@ -473,9 +489,11 @@ function DemoPropertyEditModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
-            rows={4}
+            rows={6}
+            placeholder={DESCRIPTION_FORMAT_HINT}
             className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           />
+          <span className="text-xs text-zinc-500">{DESCRIPTION_FORMAT_HINT}</span>
         </label>
         {localError && <p className="md:col-span-2 text-sm text-red-600">{localError}</p>}
         <div className="flex flex-wrap gap-3 md:col-span-2">
@@ -510,6 +528,7 @@ function PropertyEditModal({
     property.listing_kind ?? "sale",
   );
   const [title, setTitle] = useState(property.title);
+  const [metaDescription, setMetaDescription] = useState(property.meta_description ?? "");
   const [description, setDescription] = useState(property.description);
   const [location, setLocation] = useState(property.location);
   const [price, setPrice] = useState(String(property.price));
@@ -643,6 +662,7 @@ function PropertyEditModal({
           id: property.id,
           title: title.trim(),
           description: description.trim(),
+          meta_description: metaDescription.trim(),
           location: location.trim(),
           price: priceNum,
           bedrooms: bedroomsNum,
@@ -875,6 +895,17 @@ function PropertyEditModal({
             ? "Use acreage or dimension format for land listings; do not enter square feet."
             : "Enter the floor area in square feet for property listings."}
         </label>
+        <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="edit_meta_description">
+          <span className="font-medium">Meta description</span>
+          <textarea
+            id="edit_meta_description"
+            value={metaDescription}
+            onChange={(e) => setMetaDescription(e.target.value)}
+            rows={2}
+            placeholder="Short SEO summary shown at the top of the listing (1–2 sentences)."
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+          />
+        </label>
         <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="edit_description">
           <span className="font-medium">Description</span>
           <textarea
@@ -882,9 +913,11 @@ function PropertyEditModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             required
-            rows={4}
+            rows={6}
+            placeholder={DESCRIPTION_FORMAT_HINT}
             className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           />
+          <span className="text-xs text-zinc-500">{DESCRIPTION_FORMAT_HINT}</span>
         </label>
         {localError && <p className="md:col-span-2 text-sm text-red-600">{localError}</p>}
         <div className="flex flex-wrap gap-3 md:col-span-2">
@@ -934,6 +967,7 @@ export default function AgentPropertiesPage() {
       title: property.title,
       slug: property.slug,
       description: property.description,
+      meta_description: property.metaDescription ?? "",
       price: property.price,
       location: property.location,
       property_type: property.type,
@@ -1112,6 +1146,7 @@ export default function AgentPropertiesPage() {
         setCreating(false);
         return;
       }
+      const metaDescription = String(formData.get("meta_description") ?? "").trim();
       const location = String(formData.get("location") ?? "").trim();
       if (location.length < 2) {
         setError("Location is required.");
@@ -1154,6 +1189,7 @@ export default function AgentPropertiesPage() {
         title,
         slug,
         description,
+        meta_description: metaDescription,
         price: priceNum,
         location,
         property_type: propertyType,
@@ -1504,15 +1540,27 @@ export default function AgentPropertiesPage() {
                     <span className="font-semibold">Land size format:</span> Enter acreage (e.g., &quot;1 acre&quot;), dimensions (e.g., &quot;50x100 ft&quot;), or hectares (e.g., &quot;0.5 hectares&quot;). This field is flexible.
                   </p>
                 )}
+                <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="meta_description">
+                  <span className="font-medium">Meta description</span>
+                  <textarea
+                    id="meta_description"
+                    name="meta_description"
+                    rows={2}
+                    placeholder="Short SEO summary shown at the top of the listing (1–2 sentences)."
+                    className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
                 <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="description">
                   <span className="font-medium">Description</span>
                   <textarea
                     id="description"
                     name="description"
                     required
-                    rows={4}
+                    rows={6}
+                    placeholder={DESCRIPTION_FORMAT_HINT}
                     className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                   />
+                  <span className="text-xs text-zinc-500">{DESCRIPTION_FORMAT_HINT}</span>
                 </label>
                 <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="property_images">
                   <span className="font-medium">Images from device (optional)</span>

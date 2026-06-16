@@ -25,6 +25,7 @@ function mapProperty(
     baths: row.bathrooms,
     areaSqFt: row.size,
     description: row.description,
+    metaDescription: row.meta_description ?? "",
     features: [],
     amenities: [],
     // If no images are uploaded yet, don't fall back to demo data.

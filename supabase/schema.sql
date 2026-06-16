@@ -37,6 +37,7 @@ create table if not exists public.properties (
   title text not null,
   slug text not null unique,
   description text not null,
+  meta_description text not null default '',
   price numeric(14,2) not null check (price >= 0),
   location text not null,
   property_type text not null,
@@ -55,6 +56,9 @@ create table if not exists public.properties (
 -- Backfill/migrate existing databases where `properties` already exists.
 alter table public.properties
   add column if not exists listing_kind public.listing_kind not null default 'sale';
+
+alter table public.properties
+  add column if not exists meta_description text not null default '';
 
 -- Migrate legacy numeric `size` columns so land dimensions like "50*100" or "1 acre" are accepted.
 do $$

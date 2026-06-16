@@ -19,6 +19,22 @@ async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number) {
   }
 }
 
+async function fetchProfileRole(
+  supabase: ReturnType<typeof createServerClient<Database>>,
+  userId: string,
+) {
+  const profileResult = await withTimeout(
+    supabase.from("profiles").select("role").eq("id", userId).maybeSingle(),
+    6000,
+  ).catch(() => null);
+
+  if (!profileResult || profileResult.error) {
+    return null;
+  }
+
+  return profileResult.data?.role ?? null;
+}
+
 export async function updateSession(request: NextRequest) {
   const { url, anonKey, configured } = getSupabaseEnv();
 
@@ -66,7 +82,7 @@ export async function updateSession(request: NextRequest) {
      * `getUser()` is the single recommended call here because it validates the JWT with the API
      * and refreshes cookies as needed via the SSR client.
      */
-    const result = await withTimeout(supabase.auth.getUser(), 2500);
+    const result = await withTimeout(supabase.auth.getUser(), 6000);
     user = result.data.user ?? null;
   } catch {
     // Network/proxy/TLS issues can cause `fetch failed` in middleware on some Windows setups.
@@ -76,16 +92,11 @@ export async function updateSession(request: NextRequest) {
 
   let role: AppRole | null = null;
   if (user) {
-    const profileResult = await withTimeout(
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .maybeSingle(),
-      2000,
-    ).catch(() => ({ data: null as null }));
-    const profile = profileResult?.data ?? null;
-    role = profile?.role ?? null;
+    role = await fetchProfileRole(supabase, user.id);
+    // Retry once on transient timeouts instead of treating admin as unauthorized.
+    if (role === null) {
+      role = await fetchProfileRole(supabase, user.id);
+    }
   }
 
   return { response, user, role };

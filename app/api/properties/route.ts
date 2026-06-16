@@ -203,7 +203,10 @@ export async function POST(req: Request) {
       error.message.toLowerCase().includes("properties_slug_key");
 
     if (!isUniqueViolation) {
-      return NextResponse.json({ error: error.message, code }, { status: 400 });
+      const message = error.message.toLowerCase().includes("invalid input syntax for type numeric")
+        ? 'Size must accept text values like "50*100" or "1 acre". Run the size migration in supabase/schema.sql if your database still stores size as numeric.'
+        : error.message;
+      return NextResponse.json({ error: message, code }, { status: 400 });
     }
   }
 
@@ -351,7 +354,10 @@ export async function PATCH(req: Request) {
       error.message.toLowerCase().includes("properties_slug_key");
 
     if (!isUniqueViolation) {
-      return NextResponse.json({ error: error.message, code }, { status: 400 });
+      const message = error.message.toLowerCase().includes("invalid input syntax for type numeric")
+        ? 'Size must accept text values like "50*100" or "1 acre". Run the size migration in supabase/schema.sql if your database still stores size as numeric.'
+        : error.message;
+      return NextResponse.json({ error: message, code }, { status: 400 });
     }
   }
 

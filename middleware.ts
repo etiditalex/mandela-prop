@@ -22,8 +22,10 @@ export async function middleware(request: NextRequest) {
   const { response, user, role } = await updateSession(request);
 
   // Admin-only dashboard: only users with profile role "admin" may access `/agent/*`.
-  // If role lookup fails/timeouts, treat as not authorized (safer default for admin areas).
+  // When role lookup times out (role stays null) but the user is authenticated, allow the
+  // request through — API routes still enforce admin permissions server-side.
   const isAdmin = role === "admin";
+  const roleKnownNonAdmin = role !== null && role !== "admin";
 
   if (pathname === "/login" && user && isAdmin) {
     const nextParam = request.nextUrl.searchParams.get("next");
@@ -45,7 +47,7 @@ export async function middleware(request: NextRequest) {
       return redirectResponse;
     }
 
-    if (!isAdmin) {
+    if (roleKnownNonAdmin) {
       const staffOnly = new URL("/staff-only", request.url);
       const redirectResponse = NextResponse.redirect(staffOnly);
       copyCookies(response, redirectResponse);

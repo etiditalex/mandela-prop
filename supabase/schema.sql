@@ -56,6 +56,45 @@ create table if not exists public.properties (
 alter table public.properties
   add column if not exists listing_kind public.listing_kind not null default 'sale';
 
+-- Migrate legacy numeric `size` columns so land dimensions like "50*100" or "1 acre" are accepted.
+do $$
+declare
+  constraint_row record;
+begin
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'properties'
+      and column_name = 'size'
+      and data_type <> 'text'
+  ) then
+    return;
+  end if;
+
+  for constraint_row in
+    select c.conname
+    from pg_constraint c
+    join pg_class t on t.oid = c.conrelid
+    join pg_namespace n on n.oid = t.relnamespace
+    where n.nspname = 'public'
+      and t.relname = 'properties'
+      and c.contype = 'c'
+      and pg_get_constraintdef(c.oid) ilike '%size%'
+  loop
+    execute format(
+      'alter table public.properties drop constraint if exists %I',
+      constraint_row.conname
+    );
+  end loop;
+
+  alter table public.properties
+    alter column size type text using size::text;
+
+  alter table public.properties
+    alter column size set not null;
+end $$;
+
 -- Property Images
 create table if not exists public.property_images (
   id uuid primary key default gen_random_uuid(),

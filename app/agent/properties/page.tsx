@@ -51,9 +51,13 @@ function friendlySupabaseError(message: string) {
   }
   if (msg.includes("invalid input syntax for type numeric")) {
     return (
-      "Price must be numbers only (e.g. 2000000). " +
-      "For land measurements like 50*100, 100*100, half acre, or acres, use the Size field (not Price)."
+      "A numeric-only field received text it could not parse. " +
+      "For land listings, enter dimensions (e.g. 50*100, 100*100) or acreage (e.g. 1 acre) in the Size field, " +
+      "and use numbers only in Price."
     );
+  }
+  if (msg.includes("rate limit") || msg.includes("too many requests") || msg.includes("429")) {
+    return "Too many requests. Please wait a few seconds and try again.";
   }
   if (msg.includes("row-level security") || msg.includes("violates row-level security")) {
     return (
@@ -150,6 +154,17 @@ async function retryWithBackoff<T>(
       return await fn();
     } catch (err) {
       lastErr = err;
+      const message = err instanceof Error ? err.message.toLowerCase() : "";
+      const isRetryable =
+        message.includes("failed to fetch") ||
+        message.includes("network") ||
+        message.includes("timeout") ||
+        message.includes("rate limit") ||
+        message.includes("too many requests") ||
+        message.includes("429");
+      if (!isRetryable || i === attempts - 1) {
+        throw err;
+      }
       const delay = baseDelayMs * Math.pow(2, i);
       // eslint-disable-next-line no-await-in-loop
       await new Promise((r) => setTimeout(r, delay));
@@ -209,6 +224,45 @@ async function compressImageForUpload(file: File) {
   } catch {
     return file;
   }
+}
+
+async function uploadPropertyImageViaApi(propertyId: string, file: File, isPrimary: boolean) {
+  assertImageAcceptable(file);
+  const uploadFile = await compressImageForUpload(file);
+  assertImageAcceptable(uploadFile);
+
+  await retryWithBackoff(async () => {
+    const formData = new FormData();
+    formData.append("propertyId", propertyId);
+    formData.append("isPrimary", String(isPrimary));
+    formData.append("file", uploadFile);
+
+    const resp = await withTimeout(
+      fetch("/api/property-images", {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      }),
+      120000,
+      "Image upload is taking too long. Try again, or refresh and add images later.",
+    );
+
+    if (!resp.ok) {
+      let errorMessage = `Image upload failed with status ${resp.status}.`;
+      try {
+        const json = (await resp.json().catch(() => null)) as { error?: string } | null;
+        if (json?.error) {
+          errorMessage = friendlySupabaseError(json.error);
+        }
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(errorMessage);
+    }
+
+    return resp;
+  }, 3, 700);
 }
 
 function DemoPropertyEditModal({
@@ -523,50 +577,17 @@ function PropertyEditModal({
     .slice()
     .sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
 
-  const onUploadEditImages = async (files: FileList | null) => {
+  const onUploadEditImages = async (files: FileList | null, input?: HTMLInputElement | null) => {
     if (!files || files.length === 0) return;
     setLocalError(null);
     setUploadingImage(true);
     try {
-      const supabase = createSupabaseBrowserClient();
       const filesArray = Array.from(files);
       await runWithConcurrency(filesArray, 3, async (originalFile, index) => {
-        await withTimeout(
-          (async () => {
-            assertImageAcceptable(originalFile);
-            const file = await compressImageForUpload(originalFile);
-            assertImageAcceptable(file);
-            const extension = file.name.split(".").pop() || "jpg";
-            const path = `${property.id}/${crypto.randomUUID()}.${extension}`;
-
-            await withTimeout(
-              retryWithBackoff(async () => {
-                const { error } = await supabase.storage.from("property-images").upload(path, file, {
-                  upsert: false,
-                  contentType: file.type,
-                  cacheControl: "3600",
-                });
-                if (error) throw new Error(error.message);
-                return true;
-              }, 3, 700),
-              120000,
-              "Image upload is taking too long. Try again, or refresh and add images later.",
-            );
-
-            const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
-            await retryWithBackoff(async () => {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const { error } = await (supabase as any).from("property_images").insert({
-                property_id: property.id,
-                image_url: publicUrlData.publicUrl,
-                is_primary: images.length === 0 && index === 0,
-              });
-              if (error) throw new Error(error.message);
-              return true;
-            }, 3, 500);
-          })(),
-          420000,
-          "Image processing/upload is taking too long. Try again, or upload fewer images at once.",
+        await uploadPropertyImageViaApi(
+          property.id,
+          originalFile,
+          images.length === 0 && index === 0,
         );
       });
 
@@ -579,6 +600,7 @@ function PropertyEditModal({
       setLocalError(err instanceof Error ? err.message : "Unable to upload image.");
     } finally {
       setUploadingImage(false);
+      if (input) input.value = "";
     }
   };
 
@@ -674,7 +696,7 @@ function PropertyEditModal({
                 accept="image/*"
                 multiple
                 disabled={uploadingImage}
-                onChange={(event) => void onUploadEditImages(event.target.files)}
+                onChange={(event) => void onUploadEditImages(event.target.files, event.target)}
               />
             </label>
           </div>
@@ -938,10 +960,10 @@ export default function AgentPropertiesPage() {
     return upsertedRows?.length ?? 0;
   };
 
-  const load = async () => {
+  const load = async (): Promise<PropertyWithImagesRow[] | null> => {
     try {
       const controller = new AbortController();
-      const timeoutHandle = setTimeout(() => controller.abort(), 20000);
+      const timeoutHandle = setTimeout(() => controller.abort(), 45000);
       const response = await fetch("/api/agent/properties", { signal: controller.signal }).finally(() =>
         clearTimeout(timeoutHandle),
       );
@@ -956,23 +978,34 @@ export default function AgentPropertiesPage() {
           (response.status === 401 ? "Login required." : `Failed to load properties (HTTP ${response.status}).`);
         setError(friendlySupabaseError(message));
         // Don't clear the table on transient errors; keep last-known good state.
-        return;
+        return null;
       }
 
       const rows = json?.data ?? [];
       setProperties(rows);
       setError(null);
+      return rows;
     } catch (loadError) {
       if (loadError instanceof DOMException && loadError.name === "AbortError") {
         setError("Loading timed out. Check your connection and refresh.");
-        return;
+        return null;
       }
       if (loadError instanceof Error) {
         setError(friendlySupabaseError(loadError.message));
       } else {
         setError("Unable to load properties.");
       }
+      return null;
     }
+  };
+
+  const refreshListings = async () => {
+    const rows = await load();
+    if (!rows) return;
+    setEditTarget((current) => {
+      if (!current) return current;
+      return rows.find((row) => row.id === current.id) ?? current;
+    });
   };
 
   useEffect(() => {
@@ -1016,49 +1049,7 @@ export default function AgentPropertiesPage() {
   };
 
   const uploadImageForProperty = async (propertyId: string, file: File, isPrimary: boolean) => {
-    assertImageAcceptable(file);
-    const uploadFile = await compressImageForUpload(file);
-    assertImageAcceptable(uploadFile);
-
-    const formData = new FormData();
-    formData.append("propertyId", propertyId);
-    formData.append("isPrimary", String(isPrimary));
-    formData.append("file", uploadFile);
-      // Retry transient failures to improve reliability on flaky networks.
-    const response = await retryWithBackoff(async () => {
-        const resp = await withTimeout(
-          fetch("/api/property-images", {
-            method: "POST",
-            body: formData,
-            credentials: "same-origin",
-            headers: {
-              Accept: "application/json",
-            },
-          }),
-          120000,
-          "Image upload is taking too long. The listing is created—refresh and add images from the inventory list.",
-        );
-        if (!resp.ok) {
-          let errorMessage = `Image upload failed with status ${resp.status}.`;
-          try {
-            const json = (await resp.json().catch(() => null)) as { error?: string } | null;
-            if (json?.error) {
-              errorMessage = friendlySupabaseError(json.error);
-            }
-          } catch {
-            // ignore parse errors
-          }
-          throw new Error(errorMessage);
-        }
-
-        return resp;
-      }, 3, 700);
-
-    if (!response.ok) {
-      const json = (await response.json().catch(() => null)) as { error?: string } | null;
-      const msg = json?.error ? friendlySupabaseError(json.error) : `Image upload failed (status ${response.status})`;
-      throw new Error(msg);
-    }
+    await uploadPropertyImageViaApi(propertyId, file, isPrimary);
   };
 
   const insertPropertyWithUniqueSlug = async (payload: Database["public"]["Tables"]["properties"]["Insert"]) => {
@@ -1150,6 +1141,15 @@ export default function AgentPropertiesPage() {
         return;
       }
 
+      const sizeRaw = String(formData.get("size") ?? "").trim();
+      if (listingCategory === "land" && !sizeRaw) {
+        setError(
+          'Land size is required. Enter dimensions (e.g. "50*100") or acreage (e.g. "1 acre").',
+        );
+        setCreating(false);
+        return;
+      }
+
       const payload = {
         title,
         slug,
@@ -1159,7 +1159,7 @@ export default function AgentPropertiesPage() {
         property_type: propertyType,
         bedrooms: bedroomsNum,
         bathrooms: bathroomsNum,
-        size: String(formData.get("size") ?? ""),
+        size: sizeRaw || String(formData.get("size") ?? ""),
         listing_kind: listingKind,
         status: "available" as const,
       };
@@ -1264,43 +1264,12 @@ export default function AgentPropertiesPage() {
     }
   };
 
-  const onUploadImage = async (propertyId: string, file: File) => {
+  const onUploadImage = async (propertyId: string, file: File, hasExistingImages: boolean) => {
     try {
-      assertImageAcceptable(file);
-      const supabase = createSupabaseBrowserClient();
-      const uploadFile = await compressImageForUpload(file);
-      assertImageAcceptable(uploadFile);
-      const extension = uploadFile.name.split(".").pop() || "jpg";
-      const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
-
-      await withTimeout(
-        retryWithBackoff(async () => {
-          const { error } = await supabase.storage.from("property-images").upload(path, uploadFile, {
-            upsert: false,
-            contentType: uploadFile.type,
-            cacheControl: "3600",
-          });
-          if (error) throw new Error(error.message);
-          return true;
-        }, 3, 700),
-        120000,
-        "Image upload is taking too long. Try again, or refresh and add images later.",
-      );
-
-      const { data: publicUrlData } = supabase.storage
-        .from("property-images")
-        .getPublicUrl(path);
-
-      await retryWithBackoff(async () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error } = await (supabase as any).from("property_images").insert({
-          property_id: propertyId,
-          image_url: publicUrlData.publicUrl,
-          is_primary: false,
-        });
-        if (error) throw new Error(error.message);
-        return true;
-      }, 3, 500);
+      setError(null);
+      setMessage(null);
+      await uploadPropertyImageViaApi(propertyId, file, !hasExistingImages);
+      setMessage("Image uploaded successfully.");
       await load();
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unable to upload image.";
@@ -1329,7 +1298,7 @@ export default function AgentPropertiesPage() {
             void load();
             setEditTarget(null);
           }}
-          onRefresh={() => load()}
+          onRefresh={() => refreshListings()}
         />
       )}
       {demoEditTarget && (
@@ -1658,7 +1627,16 @@ export default function AgentPropertiesPage() {
                                 accept="image/*"
                                 onChange={(event) => {
                                   const file = event.target.files?.[0];
-                                  if (file) void onUploadImage(property.id, file);
+                                  const input = event.target;
+                                  if (file) {
+                                    void onUploadImage(
+                                      property.id,
+                                      file,
+                                      (property.property_images?.length ?? 0) > 0,
+                                    ).finally(() => {
+                                      input.value = "";
+                                    });
+                                  }
                                 }}
                               />
                             </label>

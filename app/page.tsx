@@ -32,7 +32,7 @@ export default async function Home() {
             className="object-cover object-center"
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/65" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/55 to-black/75 backdrop-blur-[2px]" />
           <div className="relative z-10 flex min-h-[100svh] flex-col justify-center px-5 pb-36 pt-8 text-center">
             <h1 className="text-balance font-semibold leading-tight tracking-tight text-white">
               <span className="block text-[1.65rem] sm:text-3xl">Coastal&apos;s Gateway to</span>
@@ -65,8 +65,8 @@ export default async function Home() {
             className="object-cover"
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/35 to-black/15" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/78 via-black/50 to-black/28 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/68 via-black/22 to-black/24" />
 
           <div className="relative z-10 mx-auto flex min-h-[100vh] w-full max-w-7xl flex-col px-4 pb-14 pt-4 sm:px-6 sm:pb-16 sm:pt-8 lg:px-10 lg:pb-20 lg:pt-10">
             <div className="flex flex-1 items-center pt-10 sm:pt-12">

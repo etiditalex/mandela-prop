@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const allProperties = await getAllProperties();
-  const featuredProperties = allProperties.slice(0, 3);
+  const featuredProperties = allProperties.slice(0, 4);
 
   return (
     <div>
@@ -125,7 +125,7 @@ export default async function Home() {
             </Link>
           </div>
         </FadeIn>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {featuredProperties.map((property) => (
             <FadeIn key={property.id}>
               <PropertyCard property={property} />

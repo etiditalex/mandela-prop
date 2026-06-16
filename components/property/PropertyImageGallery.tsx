@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight, X, ZoomIn } from "lucide-react";
 import clsx from "clsx";
 
@@ -17,8 +18,7 @@ export function PropertyImageGallery({ images, title }: PropertyImageGalleryProp
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const slideRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   const openLightbox = (index: number) => {
     setActiveIndex(index);
@@ -36,6 +36,10 @@ export function PropertyImageGallery({ images, title }: PropertyImageGalleryProp
   };
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (!lightboxOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -43,11 +47,6 @@ export function PropertyImageGallery({ images, title }: PropertyImageGalleryProp
       document.body.style.overflow = previousOverflow;
     };
   }, [lightboxOpen]);
-
-  useEffect(() => {
-    if (!lightboxOpen) return;
-    slideRefs.current[activeIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [activeIndex, lightboxOpen]);
 
   useEffect(() => {
     if (!lightboxOpen) return;
@@ -66,34 +65,6 @@ export function PropertyImageGallery({ images, title }: PropertyImageGalleryProp
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [lightboxOpen, uniqueImages.length]);
 
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!lightboxOpen || !container) return;
-
-    const onScroll = () => {
-      const slides = slideRefs.current.filter(Boolean) as HTMLDivElement[];
-      if (slides.length === 0) return;
-
-      const midpoint = container.scrollTop + container.clientHeight / 2;
-      let closestIndex = 0;
-      let closestDistance = Number.POSITIVE_INFINITY;
-
-      slides.forEach((slide, index) => {
-        const slideMid = slide.offsetTop + slide.offsetHeight / 2;
-        const distance = Math.abs(slideMid - midpoint);
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestIndex = index;
-        }
-      });
-
-      setActiveIndex(closestIndex);
-    };
-
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => container.removeEventListener("scroll", onScroll);
-  }, [lightboxOpen, uniqueImages.length]);
-
   if (uniqueImages.length === 0) {
     return (
       <div className="flex h-[360px] w-full items-center justify-center rounded-sm bg-zinc-100 text-sm text-zinc-500 sm:h-[460px]">
@@ -104,14 +75,108 @@ export function PropertyImageGallery({ images, title }: PropertyImageGalleryProp
 
   const activeImage = uniqueImages[activeIndex] ?? uniqueImages[0];
 
+  const lightbox =
+    lightboxOpen && mounted
+      ? createPortal(
+          <div
+            className="fixed inset-0 z-[9999] flex h-[100dvh] w-screen flex-col bg-black"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${title} photos`}
+          >
+            <div className="flex shrink-0 items-center justify-between px-4 py-3 sm:px-6">
+              <p className="text-sm font-medium text-white">
+                {activeIndex + 1} / {uniqueImages.length}
+              </p>
+              <button
+                type="button"
+                onClick={closeLightbox}
+                className="rounded-full bg-white/10 p-2.5 text-white transition hover:bg-white/20"
+                aria-label="Close fullscreen gallery"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="relative flex min-h-0 flex-1 items-center justify-center">
+              {uniqueImages.length > 1 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={showPrevious}
+                    disabled={activeIndex === 0}
+                    className="absolute left-2 z-10 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 sm:left-4"
+                    aria-label="Previous photo"
+                  >
+                    <ChevronLeft size={28} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={showNext}
+                    disabled={activeIndex === uniqueImages.length - 1}
+                    className="absolute right-2 z-10 rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 sm:right-4"
+                    aria-label="Next photo"
+                  >
+                    <ChevronRight size={28} />
+                  </button>
+                </>
+              ) : null}
+
+              <div className="relative h-full w-full px-12 py-2 sm:px-16">
+                <Image
+                  key={activeImage}
+                  src={activeImage}
+                  alt={`${title} photo ${activeIndex + 1}`}
+                  fill
+                  sizes="100vw"
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </div>
+
+            {uniqueImages.length > 1 ? (
+              <div className="shrink-0 border-t border-white/10 px-4 py-3 sm:px-6">
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {uniqueImages.map((image, index) => (
+                    <button
+                      key={`${image}-fullscreen-${index}`}
+                      type="button"
+                      onClick={() => setActiveIndex(index)}
+                      className={clsx(
+                        "relative h-16 w-24 shrink-0 overflow-hidden rounded-sm border-2 transition",
+                        index === activeIndex ? "border-white" : "border-transparent opacity-70 hover:opacity-100",
+                      )}
+                      aria-label={`Show photo ${index + 1}`}
+                    >
+                      <Image
+                        src={image}
+                        alt=""
+                        width={160}
+                        height={110}
+                        className="h-full w-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-2 text-center text-xs text-white/60">
+                  Tap thumbnails or use arrow keys to browse
+                </p>
+              </div>
+            ) : null}
+          </div>,
+          document.body,
+        )
+      : null;
+
   return (
     <>
       <div className="space-y-4">
         <button
           type="button"
           onClick={() => openLightbox(activeIndex)}
-          className="group relative block w-full overflow-hidden rounded-sm text-left"
-          aria-label={`Open ${title} photo gallery`}
+          className="group relative block w-full cursor-zoom-in overflow-hidden rounded-sm text-left"
+          aria-label={`Open ${title} photo gallery fullscreen`}
         >
           <Image
             src={activeImage}
@@ -124,7 +189,7 @@ export function PropertyImageGallery({ images, title }: PropertyImageGalleryProp
           <span className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10" />
           <span className="absolute bottom-4 right-4 inline-flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-xs font-medium text-white backdrop-blur-sm">
             <ZoomIn size={14} />
-            View photos ({uniqueImages.length})
+            View fullscreen ({uniqueImages.length})
           </span>
         </button>
 
@@ -134,15 +199,12 @@ export function PropertyImageGallery({ images, title }: PropertyImageGalleryProp
               <button
                 key={`${image}-${index}`}
                 type="button"
-                onClick={() => {
-                  setActiveIndex(index);
-                  openLightbox(index);
-                }}
+                onClick={() => openLightbox(index)}
                 className={clsx(
-                  "relative h-24 w-32 shrink-0 overflow-hidden rounded-sm border-2 transition",
+                  "relative h-24 w-32 shrink-0 cursor-zoom-in overflow-hidden rounded-sm border-2 transition",
                   index === activeIndex ? "border-brand" : "border-transparent hover:border-zinc-300",
                 )}
-                aria-label={`View photo ${index + 1} of ${uniqueImages.length}`}
+                aria-label={`View photo ${index + 1} fullscreen`}
               >
                 <Image
                   src={image}
@@ -157,73 +219,7 @@ export function PropertyImageGallery({ images, title }: PropertyImageGalleryProp
         ) : null}
       </div>
 
-      {lightboxOpen ? (
-        <div className="fixed inset-0 z-[100] bg-black/95" role="dialog" aria-modal="true" aria-label={`${title} photos`}>
-          <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-4 py-4 sm:px-6">
-            <p className="text-sm font-medium text-white">
-              {activeIndex + 1} / {uniqueImages.length}
-            </p>
-            <button
-              type="button"
-              onClick={closeLightbox}
-              className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20"
-              aria-label="Close gallery"
-            >
-              <X size={22} />
-            </button>
-          </div>
-
-          {uniqueImages.length > 1 ? (
-            <>
-              <button
-                type="button"
-                onClick={showPrevious}
-                disabled={activeIndex === 0}
-                className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 sm:left-6"
-                aria-label="Previous photo"
-              >
-                <ChevronLeft size={24} />
-              </button>
-              <button
-                type="button"
-                onClick={showNext}
-                disabled={activeIndex === uniqueImages.length - 1}
-                className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-30 sm:right-6"
-                aria-label="Next photo"
-              >
-                <ChevronRight size={24} />
-              </button>
-            </>
-          ) : null}
-
-          <div
-            ref={scrollContainerRef}
-            className="h-full overflow-y-auto scroll-smooth snap-y snap-mandatory"
-          >
-            {uniqueImages.map((image, index) => (
-              <div
-                key={`${image}-lightbox-${index}`}
-                ref={(node) => {
-                  slideRefs.current[index] = node;
-                }}
-                className="flex min-h-full snap-start items-center justify-center px-4 py-20 sm:px-10"
-              >
-                <Image
-                  src={image}
-                  alt={`${title} photo ${index + 1}`}
-                  width={1800}
-                  height={1200}
-                  className="max-h-[85vh] w-auto max-w-full object-contain"
-                />
-              </div>
-            ))}
-          </div>
-
-          <p className="pointer-events-none absolute inset-x-0 bottom-4 text-center text-xs text-white/70">
-            Scroll or use arrow keys for more photos
-          </p>
-        </div>
-      ) : null}
+      {lightbox}
     </>
   );
 }

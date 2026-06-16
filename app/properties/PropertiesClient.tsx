@@ -64,7 +64,7 @@ export function PropertiesClient({ properties }: { properties: Property[] }) {
         }}
       />
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {currentPageData.map((property) => (
           <PropertyCard key={property.id} property={property} />
         ))}

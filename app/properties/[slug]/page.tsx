@@ -1,11 +1,11 @@
-import Image from "next/image";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PhoneCall, Mail } from "lucide-react";
+import { Mail, PhoneCall } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { SavePropertyButton } from "@/components/property/SavePropertyButton";
 import { InquiryForm } from "@/components/property/InquiryForm";
+import { PropertyImageGallery } from "@/components/property/PropertyImageGallery";
 import { getPropertyBySlugFromDb } from "@/services/propertyService";
 import { formatCurrency } from "@/lib/utils";
 import { landCategoryList } from "@/lib/land";
@@ -58,25 +58,7 @@ export default async function PropertyDetailsPage({ params }: PropertyDetailsPag
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-10">
       <div className="grid gap-8 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <Image
-            src={property.coverImage}
-            alt={property.title}
-            width={1600}
-            height={900}
-            className="h-[460px] w-full rounded-sm object-cover"
-          />
-          <div className="grid grid-cols-3 gap-4">
-            {property.gallery.map((image, index) => (
-              <Image
-                key={image}
-                src={image}
-                alt={`${property.title} gallery ${index + 1}`}
-                width={600}
-                height={400}
-                className="h-36 w-full rounded-sm object-cover"
-              />
-            ))}
-          </div>
+          <PropertyImageGallery images={property.gallery} title={property.title} />
           <div>
             <h1 className="text-4xl font-semibold">{property.title}</h1>
             <p className="mt-2 text-zinc-600">{property.location}</p>

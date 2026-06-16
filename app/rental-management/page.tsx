@@ -44,7 +44,7 @@ export default async function RentalManagementPage() {
             <span className="font-semibold">Listing type: For rent</span>.
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {rentals.map((property) => (
               <PropertyCard key={property.id} property={property} />
             ))}

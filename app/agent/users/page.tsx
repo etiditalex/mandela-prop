@@ -77,12 +77,12 @@ export default function AgentUsersPage() {
     <div className="mx-auto max-w-[1200px] space-y-8">
       <AgentPageHeader
         title="Users"
-        breadcrumb="Dashboard / Users"
+        breadcrumb="staff accounts"
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
             <UserCircle2 className="h-6 w-6" />
           </span>
           <div>
@@ -91,7 +91,7 @@ export default function AgentUsersPage() {
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
             <UsersIcon className="h-6 w-6" />
           </span>
           <div>
@@ -100,7 +100,7 @@ export default function AgentUsersPage() {
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
             <UsersIcon className="h-6 w-6" />
           </span>
           <div>
@@ -112,7 +112,7 @@ export default function AgentUsersPage() {
 
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-6 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-600">Directory</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">Directory</p>
           <h2 className="mt-1 text-lg font-bold text-slate-900">Registered profiles</h2>
           <p className="mt-1 text-sm text-slate-500">
             Admin-only roster from Supabase. Agents manage listings elsewhere.
@@ -148,7 +148,7 @@ export default function AgentUsersPage() {
                   <td className="px-4 py-3 text-slate-600">{user.email}</td>
                   <td className="px-4 py-3 text-slate-600">{user.phone ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <Badge className="border-blue-100 bg-blue-50 capitalize text-blue-800">
+                    <Badge className="border-karim-100 bg-karim-50 capitalize text-karim-900">
                       {user.role}
                     </Badge>
                   </td>
@@ -163,7 +163,7 @@ export default function AgentUsersPage() {
                         void onRoleChange(user.id, event.target.value as AppRole)
                       }
                       disabled={updatingUserId === user.id}
-                      className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs capitalize text-slate-700 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs capitalize text-slate-700 outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <option value="client">client</option>
                       <option value="agent">agent</option>

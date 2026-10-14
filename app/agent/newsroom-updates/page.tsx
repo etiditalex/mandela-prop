@@ -216,7 +216,7 @@ function EditorModal({
             id="news_kind"
             value={kind}
             onChange={(e) => setKind(e.target.value as NewsUpdateKind)}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="blog">Blog / announcement</option>
             <option value="property">Property update</option>
@@ -229,7 +229,7 @@ function EditorModal({
             id="news_published"
             value={published ? "published" : "draft"}
             onChange={(e) => setPublished(e.target.value === "published")}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="draft">Draft (hidden)</option>
             <option value="published">Published (public)</option>
@@ -246,7 +246,7 @@ function EditorModal({
             value={excerpt}
             onChange={(e) => setExcerpt(e.target.value)}
             rows={2}
-            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
             placeholder="Short summary shown on the Newsroom page."
           />
         </label>
@@ -258,7 +258,7 @@ function EditorModal({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={10}
-            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
             placeholder="Write the full update here."
             required
           />
@@ -270,7 +270,7 @@ function EditorModal({
             id="news_related_property"
             value={relatedPropertyId}
             onChange={(e) => setRelatedPropertyId(e.target.value)}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="">None</option>
             {properties.map((p) => (
@@ -288,7 +288,7 @@ function EditorModal({
             type="file"
             accept="image/*"
             onChange={(e) => setCoverImage(e.target.files?.[0] ?? null)}
-            className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-karim-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-karim-800 hover:file:bg-karim-100 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           />
           {initial.cover_image_url ? (
             <p className="text-xs text-zinc-500">Existing cover is set. Uploading replaces it.</p>
@@ -414,7 +414,7 @@ export default function NewsroomUpdatesAdminPage() {
 
       <AgentPageHeader
         title="Newsroom/Updates"
-        breadcrumb="Dashboard / Newsroom / Updates"
+        breadcrumb="articles and property news"
         actions={
           <Button type="button" onClick={() => setCreateOpen(true)}>
             New update

@@ -42,7 +42,7 @@ export function AuthButtons({
 
   if (authUnavailable) return null;
 
-  const agentLoginHref = "/login?next=/agent/properties";
+  const agentLoginHref = "/login?next=/agent";
 
   if (!user) {
     return (
@@ -74,7 +74,7 @@ export function AuthButtons({
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
       {ready && isStaff && (
         <Link
-          href="/agent/properties"
+          href="/agent"
           className={clsx("text-sm font-medium text-zinc-700 hover:text-brand", linkClassName)}
         >
           Dashboard

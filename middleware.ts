@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === "/login" && user && isAdmin) {
     const nextParam = request.nextUrl.searchParams.get("next");
-    let target = "/agent/properties";
+    let target = "/agent";
     if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
       target = nextParam;
     }
@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/agent")) {
     if (!user) {
       const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("next", fullPath || "/agent/properties");
+      loginUrl.searchParams.set("next", fullPath || "/agent");
       const redirectResponse = NextResponse.redirect(loginUrl);
       copyCookies(response, redirectResponse);
       return redirectResponse;

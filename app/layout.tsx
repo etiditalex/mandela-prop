@@ -5,6 +5,7 @@ import { AppProviders } from "@/components/providers/AppProviders";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { MobileBottomNav } from "@/components/home/MobileBottomNav";
+import { SiteMain } from "@/components/layout/SiteMain";
 
 const montserrat = Montserrat({
   variable: "--font-body",
@@ -32,7 +33,7 @@ export default function RootLayout({
         <AppProviders>
           <div className="flex min-h-screen flex-col">
             <Navbar />
-            <main className="flex-1 pb-24 md:pb-0">{children}</main>
+            <SiteMain>{children}</SiteMain>
             <Footer />
             <MobileBottomNav />
           </div>

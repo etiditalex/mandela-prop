@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/Input";
 
 function safeRedirectPath(next: string | null): string {
   if (!next || !next.startsWith("/") || next.startsWith("//")) {
-    return "/agent/properties";
+    return "/agent";
   }
   return next;
 }

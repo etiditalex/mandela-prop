@@ -99,7 +99,7 @@ function parseNumberInput(value: unknown): number {
 function listingStatusClass(status: PropertyRow["status"]) {
   switch (status) {
     case "available":
-      return "bg-blue-50 text-blue-700 ring-1 ring-blue-100";
+      return "bg-karim-50 text-karim-800 ring-1 ring-karim-100";
     case "sold":
       return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
     case "rented":
@@ -417,7 +417,7 @@ function DemoPropertyEditModal({
             id="demo_listing_kind"
             value={listingKind}
             onChange={(event) => setListingKind(event.target.value as PropertyRow["listing_kind"])}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="sale">For sale</option>
             <option value="rent">For rent</option>
@@ -429,7 +429,7 @@ function DemoPropertyEditModal({
             id="demo_property_type"
             value={residentialType}
             onChange={(event) => setResidentialType(event.target.value as ResidentialPropertyType)}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             {residentialPropertyTypes.map((type) => (
               <option key={type} value={type}>
@@ -479,7 +479,7 @@ function DemoPropertyEditModal({
             onChange={(e) => setMetaDescription(e.target.value)}
             rows={2}
             placeholder="Short SEO summary shown at the top of the listing (1–2 sentences)."
-            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           />
         </label>
         <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="demo_description">
@@ -491,7 +491,7 @@ function DemoPropertyEditModal({
             required
             rows={6}
             placeholder={DESCRIPTION_FORMAT_HINT}
-            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           />
           <span className="text-xs text-zinc-500">{DESCRIPTION_FORMAT_HINT}</span>
         </label>
@@ -708,7 +708,7 @@ function PropertyEditModal({
               <p className="text-sm font-semibold text-slate-900">Images</p>
               <p className="text-xs text-slate-500">Upload and manage listing photos.</p>
             </div>
-            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60">
+            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-karim-800 transition hover:bg-karim-50 disabled:cursor-not-allowed disabled:opacity-60">
               {uploadingImage ? "Uploading..." : "Add images"}
               <input
                 className="hidden"
@@ -735,7 +735,7 @@ function PropertyEditModal({
                     loading="lazy"
                   />
                   {img.is_primary ? (
-                    <span className="absolute left-2 top-2 rounded-full bg-blue-600/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    <span className="absolute left-2 top-2 rounded-full bg-karim-700/90 px-2 py-0.5 text-[10px] font-semibold text-white">
                       Primary
                     </span>
                   ) : null}
@@ -745,7 +745,7 @@ function PropertyEditModal({
                         type="button"
                         onClick={() => void onSetPrimaryImage(img.id)}
                         disabled={deletingImageId === img.id}
-                        className="rounded px-2 py-1 text-[10px] font-semibold text-white bg-blue-600 hover:bg-blue-700 transition disabled:opacity-50"
+                        className="rounded px-2 py-1 text-[10px] font-semibold text-white bg-karim-700 hover:bg-karim-800 transition disabled:opacity-50"
                         title="Set as primary image"
                       >
                         Set Primary
@@ -775,7 +775,7 @@ function PropertyEditModal({
             id="edit_listing_category"
             value={listingCategory}
             onChange={(event) => setListingCategory(event.target.value as "property" | "land")}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="property">Property</option>
             <option value="land">Land</option>
@@ -787,7 +787,7 @@ function PropertyEditModal({
             id="edit_listing_kind"
             value={listingKind}
             onChange={(event) => setListingKind(event.target.value as PropertyRow["listing_kind"])}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="sale">For sale</option>
             <option value="rent">For rent</option>
@@ -808,7 +808,7 @@ function PropertyEditModal({
               id="edit_land_type"
               value={landType}
               onChange={(event) => setLandType(event.target.value as LandListingTitle)}
-              className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
             >
               {landCategoryList.map((category) => (
                 <option key={category.slug} value={category.title}>
@@ -826,7 +826,7 @@ function PropertyEditModal({
               onChange={(event) =>
                 setResidentialType(event.target.value as ResidentialPropertyType)
               }
-              className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
             >
               {residentialPropertyTypes.map((type) => (
                 <option key={type} value={type}>
@@ -850,7 +850,7 @@ function PropertyEditModal({
             id="edit_status"
             value={status}
             onChange={(event) => setStatus(event.target.value as PropertyRow["status"])}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="available">Available</option>
             <option value="sold">Sold</option>
@@ -903,7 +903,7 @@ function PropertyEditModal({
             onChange={(e) => setMetaDescription(e.target.value)}
             rows={2}
             placeholder="Short SEO summary shown at the top of the listing (1–2 sentences)."
-            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           />
         </label>
         <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="edit_description">
@@ -915,7 +915,7 @@ function PropertyEditModal({
             required
             rows={6}
             placeholder={DESCRIPTION_FORMAT_HINT}
-            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           />
           <span className="text-xs text-zinc-500">{DESCRIPTION_FORMAT_HINT}</span>
         </label>
@@ -1351,13 +1351,13 @@ export default function AgentPropertiesPage() {
 
       <AgentPageHeader
         title="Properties"
-        breadcrumb="Dashboard / Properties"
+        breadcrumb="sale listings"
         actions={
           <>
             <button
               type="button"
               onClick={() => void load()}
-              className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-100"
+              className="inline-flex items-center gap-2 rounded-xl border border-karim-200 bg-karim-50 px-4 py-2 text-sm font-semibold text-karim-800 shadow-sm transition hover:bg-karim-100"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh
@@ -1372,7 +1372,7 @@ export default function AgentPropertiesPage() {
             </button>
             <a
               href="/"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm transition hover:bg-blue-700"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-karim-700 text-white shadow-sm transition hover:bg-karim-800"
               aria-label="Site settings shortcut"
               title="Public site"
             >
@@ -1384,7 +1384,7 @@ export default function AgentPropertiesPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
             <Layers className="h-6 w-6" />
           </span>
           <div>
@@ -1393,7 +1393,7 @@ export default function AgentPropertiesPage() {
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
             <Building2 className="h-6 w-6" />
           </span>
           <div>
@@ -1415,7 +1415,7 @@ export default function AgentPropertiesPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
             <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
               <div className="mb-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-600">New listing</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">New listing</p>
                 <h3 className="mt-1 text-xl font-bold text-slate-900">Add property</h3>
               </div>
 
@@ -1429,7 +1429,7 @@ export default function AgentPropertiesPage() {
                     onChange={(event) =>
                       setListingCategory(event.target.value as "property" | "land")
                     }
-                    className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   >
                     <option value="property">Property</option>
                     <option value="land">Land</option>
@@ -1442,7 +1442,7 @@ export default function AgentPropertiesPage() {
                     name="listing_kind"
                     value={listingKind}
                     onChange={(event) => setListingKind(event.target.value as PropertyRow["listing_kind"])}
-                    className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   >
                     <option value="sale">For sale</option>
                     <option value="rent">For rent</option>
@@ -1460,7 +1460,7 @@ export default function AgentPropertiesPage() {
                       onChange={(event) =>
                         setSelectedLandType(event.target.value as LandListingTitle)
                       }
-                      className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                     >
                       {landCategoryList.map((category) => (
                         <option key={category.slug} value={category.title}>
@@ -1479,7 +1479,7 @@ export default function AgentPropertiesPage() {
                       onChange={(event) =>
                         setSelectedPropertyType(event.target.value as ResidentialPropertyType)
                       }
-                      className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                     >
                       {residentialPropertyTypes.map((type) => (
                         <option key={type} value={type}>
@@ -1522,7 +1522,7 @@ export default function AgentPropertiesPage() {
                       autoCorrect="off"
                       placeholder="e.g., 50x100, 1 acre, 2 acres"
                       required
-                      className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors placeholder:text-zinc-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors placeholder:text-zinc-400 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                     />
                   </label>
                 ) : (
@@ -1536,7 +1536,7 @@ export default function AgentPropertiesPage() {
                   />
                 )}
                 {listingCategory === "land" && (
-                  <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2 md:col-span-2">
+                  <p className="text-xs text-karim-800 bg-karim-50 border border-karim-200 rounded px-3 py-2 md:col-span-2">
                     <span className="font-semibold">Land size format:</span> Enter acreage (e.g., &quot;1 acre&quot;), dimensions (e.g., &quot;50x100 ft&quot;), or hectares (e.g., &quot;0.5 hectares&quot;). This field is flexible.
                   </p>
                 )}
@@ -1547,7 +1547,7 @@ export default function AgentPropertiesPage() {
                     name="meta_description"
                     rows={2}
                     placeholder="Short SEO summary shown at the top of the listing (1–2 sentences)."
-                    className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   />
                 </label>
                 <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="description">
@@ -1558,7 +1558,7 @@ export default function AgentPropertiesPage() {
                     required
                     rows={6}
                     placeholder={DESCRIPTION_FORMAT_HINT}
-                    className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   />
                   <span className="text-xs text-zinc-500">{DESCRIPTION_FORMAT_HINT}</span>
                 </label>
@@ -1570,7 +1570,7 @@ export default function AgentPropertiesPage() {
                     accept="image/*"
                     multiple
                     onChange={(event) => setCreateImages(Array.from(event.target.files ?? []))}
-                    className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-karim-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-karim-800 hover:file:bg-karim-100 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   />
                   {createImages.length > 0 && (
                     <p className="text-xs text-zinc-500">
@@ -1581,7 +1581,7 @@ export default function AgentPropertiesPage() {
                 <button
                   type="submit"
                   disabled={creating}
-                  className="md:col-span-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-50"
+                  className="md:col-span-2 rounded-xl bg-karim-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-karim-800 disabled:opacity-50"
                 >
                   {creating ? "Creating..." : "Add property"}
                 </button>
@@ -1596,7 +1596,7 @@ export default function AgentPropertiesPage() {
               className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
             >
               <div className="border-b border-slate-100 bg-slate-50/80 px-6 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">
                   Inventory
                 </p>
                 <h3 className="mt-1 text-lg font-bold text-slate-900">Current listings</h3>
@@ -1667,7 +1667,7 @@ export default function AgentPropertiesPage() {
                             >
                               Preview
                             </a>
-                            <label className="cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-blue-600 transition hover:border-blue-300 hover:bg-blue-50">
+                            <label className="cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-karim-700 transition hover:border-karim-300 hover:bg-karim-50">
                               Image
                               <input
                                 className="hidden"

@@ -123,7 +123,7 @@ function EditorModal({
             id="pod_published"
             value={published ? "published" : "draft"}
             onChange={(e) => setPublished(e.target.value === "published")}
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="draft">Draft (hidden)</option>
             <option value="published">Published (public)</option>
@@ -137,7 +137,7 @@ function EditorModal({
             value={youtubeUrl}
             onChange={(e) => setYouTubeUrl(e.target.value)}
             placeholder="https://www.youtube.com/watch?v=..."
-            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           />
           <p className="text-xs text-zinc-500">
             Supported: `watch?v=`, `youtu.be/`, `shorts/`, `embed/`.
@@ -246,7 +246,7 @@ export default function PodcastAdminPage() {
 
       <AgentPageHeader
         title="Podcast"
-        breadcrumb="Dashboard / Podcast"
+        breadcrumb="Karim podcast"
         actions={
           <Button type="button" onClick={() => setCreateOpen(true)}>
             Add video
@@ -303,7 +303,7 @@ export default function PodcastAdminPage() {
                       href={r.youtube_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs font-medium text-blue-700 underline underline-offset-2"
+                      className="text-xs font-medium text-karim-800 underline underline-offset-2"
                     >
                       Open
                     </a>

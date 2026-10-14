@@ -1,92 +1,78 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { Bell, Search } from "lucide-react";
+import { Bell, ChevronDown, Mail, Menu } from "lucide-react";
 
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useProfileRole } from "@/hooks/useProfileRole";
+import { useAdminShell } from "./AdminShellContext";
 
-export function AdminTopBar() {
-  const { displayName, role, ready, authUnavailable } = useProfileRole();
+type AdminTopBarProps = {
+  leadCount?: number;
+  inquiryCount?: number;
+};
 
-  const withTimeout = async <T,>(promise: PromiseLike<T>, timeoutMs: number) => {
-    let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-    const timeoutPromise = new Promise<T>((_, reject) => {
-      timeoutHandle = setTimeout(() => reject(new Error("timeout")), timeoutMs);
-    });
-    try {
-      return await Promise.race([Promise.resolve(promise), timeoutPromise]);
-    } finally {
-      if (timeoutHandle) clearTimeout(timeoutHandle);
-    }
-  };
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "KR";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
 
-  const onLogout = async () => {
-    if (authUnavailable) return;
-    const supabase = createSupabaseBrowserClient();
-    try {
-      await withTimeout(supabase.auth.signOut({ scope: "local" }), 4000);
-    } catch {
-      // ignore and still redirect
-    } finally {
-      window.location.href = "/";
-    }
-  };
+export function AdminTopBar({ leadCount = 0, inquiryCount = 0 }: AdminTopBarProps) {
+  const { toggleMobile } = useAdminShell();
+  const { displayName, ready } = useProfileRole();
+  const welcome = ready ? displayName.split(" ")[0] || "Admin" : "Admin";
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 shrink-0 items-center gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur sm:px-6 lg:px-8">
-      <div className="relative min-w-0 flex-1 max-w-xl">
-        <Search
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-          aria-hidden
-        />
-        <input
-          type="search"
-          placeholder="Search listings, locations…"
-          className="w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-sm text-slate-800 placeholder:text-slate-400 outline-none ring-blue-600/20 transition focus:border-blue-300 focus:bg-white focus:ring-4"
-          readOnly
-          aria-label="Search (coming soon)"
-        />
-      </div>
-
-      <div className="hidden items-center gap-2 sm:flex">
-        <button
-          type="button"
-          className="relative flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 hover:text-slate-800"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-        </button>
-      </div>
-
-      <div className="ml-auto flex items-center gap-3 border-l border-slate-200 pl-3 sm:pl-4">
-        <div className="hidden min-w-0 text-right sm:block">
-          {ready ? (
-            <>
-              <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
-              <p className="text-xs capitalize text-blue-600">{role ?? "—"}</p>
-            </>
-          ) : (
-            <p className="text-sm text-slate-500">Loading…</p>
-          )}
-        </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-sm font-bold text-white shadow-inner">
-          {ready && displayName ? displayName.slice(0, 1).toUpperCase() : "·"}
-        </div>
-        <Link
-          href="/"
-          className="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-blue-200 hover:text-blue-700 lg:inline-block"
-        >
-          View site
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-karim-700 px-3 text-white shadow-sm sm:px-4">
+      <div className="flex min-w-0 items-center gap-2">
+        <Link href="/agent" className="flex items-center gap-2">
+          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
+            <Image src="/brand/logo.jpg" alt="Realtor Karim" fill className="object-contain p-0.5" />
+          </span>
+          <span className="truncate text-sm font-bold sm:text-base">Karim Real Estate</span>
         </Link>
         <button
           type="button"
-          onClick={() => void onLogout()}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+          onClick={toggleMobile}
+          className="rounded-md p-1.5 text-white/90 hover:bg-white/10 lg:hidden"
+          aria-label="Open navigation menu"
         >
-          Log out
+          <Menu size={20} />
         </button>
+      </div>
+
+      <div className="flex items-center gap-1 sm:gap-2">
+        <Link
+          href="/agent/listing-leads"
+          className="relative rounded-md p-2 text-white/90 hover:bg-white/10"
+          aria-label="Leads"
+        >
+          <Mail size={18} />
+          {leadCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-cream">
+              {leadCount > 9 ? "9+" : leadCount}
+            </span>
+          )}
+        </Link>
+        <Link href="/agent" className="relative rounded-md p-2 text-white/90 hover:bg-white/10" aria-label="Inquiries">
+          <Bell size={18} />
+          {inquiryCount > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-cream">
+              {inquiryCount > 9 ? "9+" : inquiryCount}
+            </span>
+          )}
+        </Link>
+        <div className="ml-1 flex items-center gap-2 border-l border-white/20 pl-2 sm:pl-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-karim-500 text-[11px] font-bold ring-2 ring-white/30">
+            {ready ? initials(displayName) : "KR"}
+          </span>
+          <span className="hidden items-center gap-1 text-sm sm:flex">
+            Welcome, {welcome}
+            <ChevronDown size={14} className="text-white/70" />
+          </span>
+        </div>
       </div>
     </header>
   );

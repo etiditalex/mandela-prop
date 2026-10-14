@@ -11,7 +11,7 @@ type LeadRow = Database["public"]["Tables"]["listing_leads"]["Row"];
 function badgeClass(status: LeadRow["status"]) {
   switch (status) {
     case "new":
-      return "bg-blue-50 text-blue-700 ring-1 ring-blue-100";
+      return "bg-karim-50 text-karim-800 ring-1 ring-karim-100";
     case "contacted":
       return "bg-amber-50 text-amber-800 ring-1 ring-amber-100";
     case "closed":
@@ -83,7 +83,7 @@ export default function AgentListingLeadsPage() {
     <div className="mx-auto max-w-[1400px] space-y-8">
       <AgentPageHeader
         title="Sell / Let leads"
-        breadcrumb="Dashboard / Leads"
+        breadcrumb="sell or let submissions"
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

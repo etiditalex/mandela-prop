@@ -4,9 +4,8 @@ import { FutureRealEstateCta } from "@/components/home/FutureRealEstateCta";
 import { HomeHero } from "@/components/home/HomeHero";
 import { KarimCoastalIntro } from "@/components/home/KarimCoastalIntro";
 import { KarimFirmSplit } from "@/components/home/KarimFirmSplit";
-import { PropertyCard } from "@/components/property/PropertyCard";
+import { SignatureProperties } from "@/components/home/SignatureProperties";
 import { Button } from "@/components/ui/Button";
-import { FadeIn } from "@/components/ui/FadeIn";
 import { DEFAULT_HERO_SLIDES, HeroSlide } from "@/lib/homepageContent";
 import { getHomepageContent } from "@/lib/homepage";
 import { getAllProperties } from "@/services/propertyService";
@@ -31,7 +30,6 @@ export const dynamic = "force-dynamic";
 
 export default async function Home() {
   const [allProperties, homepage] = await Promise.all([getAllProperties(), getHomepageContent()]);
-  const featuredProperties = allProperties.slice(0, 4);
   const listingSlides: HeroSlide[] = allProperties
     .filter((property) => property.coverImage)
     .map((property) => ({ src: property.coverImage, alt: property.title }));
@@ -59,26 +57,7 @@ export default async function Home() {
 
       <KarimFirmSplit />
 
-      <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-10">
-        <FadeIn>
-          <div className="mb-8 flex items-end justify-between gap-4">
-            <div>
-              <p className="inline-block border-b-2 border-brand pb-1 text-sm uppercase tracking-[0.25em] text-black">Featured</p>
-              <h2 className="mt-3 text-3xl font-semibold">Signature Properties</h2>
-            </div>
-            <Link href="/properties" className="text-sm font-medium text-black underline decoration-brand decoration-2 underline-offset-4">
-              View all listings
-            </Link>
-          </div>
-        </FadeIn>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {featuredProperties.map((property) => (
-            <FadeIn key={property.id}>
-              <PropertyCard property={property} />
-            </FadeIn>
-          ))}
-        </div>
-      </section>
+      <SignatureProperties properties={allProperties.slice(0, 12)} />
 
       <FutureRealEstateCta />
 

@@ -14,7 +14,7 @@ export default function AboutPage() {
     <section className="space-y-16 pb-8">
       <div className="relative">
         <div className="relative w-full overflow-hidden bg-brand pb-8 text-white sm:pb-10 lg:pb-36">
-          <div className="absolute inset-0 bg-[linear-gradient(125deg,#164a36_0%,#1e5a42_45%,#164a36_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(125deg,#30603c_0%,#1d3c27_45%,#30603c_100%)]" />
           <div className="absolute inset-y-0 left-1/2 w-[78%] -translate-x-1/2 bg-[linear-gradient(180deg,rgba(20,74,54,0.55)_0%,rgba(20,74,54,0.78)_100%)] sm:w-[60%] lg:w-[42%]" />
           <div className="absolute inset-y-0 left-1/2 w-[78%] -translate-x-1/2 bg-[url('https://images.unsplash.com/photo-1494526585095-c41746248156?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-25 blur-[1.5px] sm:w-[60%] lg:w-[42%]" />
           <div className="absolute inset-y-0 left-1/2 w-[78%] -translate-x-1/2 bg-[linear-gradient(180deg,rgba(10,40,28,0.15)_0%,rgba(10,40,28,0.85)_100%)] sm:w-[60%] lg:w-[42%]" />
@@ -105,7 +105,7 @@ export default function AboutPage() {
         <div className="h-[50px]" />
 
         <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-brand text-white">
-          <div className="absolute inset-0 bg-[linear-gradient(120deg,#164a36_0%,#1e5a42_50%,#164a36_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(120deg,#30603c_0%,#1d3c27_50%,#30603c_100%)]" />
           <div className="absolute inset-y-0 left-0 w-full bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1400&q=80')] bg-cover bg-center opacity-20 blur-[1.5px] lg:w-[68%]" />
           <div className="absolute inset-y-0 left-0 w-full bg-[linear-gradient(180deg,rgba(18,63,46,0.5)_0%,rgba(18,63,46,0.8)_100%)] lg:w-[68%]" />
 

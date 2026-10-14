@@ -36,7 +36,7 @@ export default async function Home() {
           <div className="relative z-10 flex min-h-[100svh] flex-col justify-center px-5 pb-36 pt-8 text-center">
             <h1 className="text-balance font-semibold leading-tight tracking-tight text-white">
               <span className="block text-[1.65rem] sm:text-3xl">Coastal&apos;s Gateway to</span>
-              <span className="mt-2 block text-[1.85rem] text-brand sm:text-4xl">Premium Real Estate</span>
+              <span className="mt-2 block text-[1.85rem] text-[var(--brand-soft)] sm:text-4xl">Premium Real Estate</span>
             </h1>
             <p className="mx-auto mt-6 max-w-md text-pretty text-sm leading-relaxed text-white/90 sm:text-base">
               Curated homes, land, and investment opportunities with trusted guidance and a
@@ -141,7 +141,7 @@ export default async function Home() {
       <section className="bg-black px-4 py-16 sm:px-6 lg:px-10">
         <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-6">
           <div>
-            <p className="text-sm uppercase tracking-[0.25em] text-brand">Next Step</p>
+            <p className="text-sm uppercase tracking-[0.25em] text-[var(--brand-soft)]">Next Step</p>
             <h2 className="mt-2 text-3xl font-semibold text-white">
               Let&apos;s Find Your Signature Property
             </h2>

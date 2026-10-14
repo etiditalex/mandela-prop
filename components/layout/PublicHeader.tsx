@@ -102,7 +102,7 @@ export function PublicHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#1a1a1a]">
+      <header className="sticky top-0 z-40 border-b-2 border-brand bg-[#0e0e0e]">
         <div className="mx-auto flex h-[100px] w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
           <button
             type="button"
@@ -164,7 +164,7 @@ export function PublicHeader() {
             />
 
             <motion.aside
-              className="absolute left-0 top-0 h-full w-[min(22rem,86vw)] bg-[#123c2d] text-white shadow-2xl"
+              className="absolute left-0 top-0 h-full w-[min(22rem,86vw)] bg-brand text-white shadow-2xl"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}

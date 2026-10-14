@@ -17,7 +17,7 @@ export function PublicNavMobile({ variant = "site", savedCount = 0 }: PublicNavM
   const showExtras = variant === "site";
 
   return (
-    <header className="sticky top-0 z-50 flex w-full items-center justify-between gap-3 bg-[#1a1a1a] px-4 py-3">
+    <header className="sticky top-0 z-50 flex w-full items-center justify-between gap-3 border-b-2 border-brand bg-[#0e0e0e] px-4 py-3">
       <Link
         href="/"
         className="flex h-14 min-w-[4.75rem] items-center justify-center"

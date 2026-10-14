@@ -32,7 +32,7 @@ export function MobileBottomNav() {
               href={href}
               className={clsx(
                 "flex min-w-[3.5rem] flex-col items-center gap-1 rounded-xl px-2 py-1 text-[10px] font-medium",
-                active ? "text-black" : "text-zinc-500",
+                active ? "text-brand" : "text-zinc-500",
               )}
             >
               <Icon className="h-5 w-5" strokeWidth={active ? 2.25 : 1.75} />

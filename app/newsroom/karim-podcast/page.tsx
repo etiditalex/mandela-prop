@@ -26,7 +26,7 @@ export default async function KarimPodcastPage() {
   return (
     <section>
       <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border border-zinc-300 text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,#123c2d,#0b0b0b)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,#30603c,#0e0e0e)]" />
         <div className="absolute inset-0 bg-black/35" />
 
         <div className="relative mx-auto flex min-h-[15rem] w-full max-w-[88rem] items-end px-6 pb-10 sm:min-h-[18rem] sm:px-10 sm:pb-12 lg:min-h-[22rem] lg:px-14 lg:pb-14">

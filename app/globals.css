@@ -3,9 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --brand: #164a36;
-  --black: #0b0b0b;
-  --cream: #f9f8f5;
+  /* Sampled from the Realtor Karim mark: sage on near-black, with white type. */
+  --brand: #30603c;
+  --brand-soft: #8fb89a;
+  --black: #0e0e0e;
+  --cream: #f6f7f5;
 }
 
 body {

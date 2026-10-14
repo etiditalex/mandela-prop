@@ -13,8 +13,9 @@ export async function middleware(request: NextRequest) {
   const fullPath = `${pathname}${request.nextUrl.search}`;
 
   // Performance: avoid Supabase session lookups on public routes.
-  // Only `/agent/*` is protected and `/login` needs the "already logged in" redirect.
-  const needsAuthGate = pathname === "/login" || pathname.startsWith("/agent");
+  // `/admin-login` is the staff door. `/agent/*` is the protected dashboard.
+  const isStaffLogin = pathname === "/admin-login" || pathname === "/login";
+  const needsAuthGate = isStaffLogin || pathname.startsWith("/agent");
   if (!needsAuthGate) {
     return NextResponse.next();
   }
@@ -27,7 +28,7 @@ export async function middleware(request: NextRequest) {
   const isAdmin = role === "admin";
   const roleKnownNonAdmin = role !== null && role !== "admin";
 
-  if (pathname === "/login" && user && isAdmin) {
+  if (isStaffLogin && user && isAdmin) {
     const nextParam = request.nextUrl.searchParams.get("next");
     let target = "/agent";
     if (nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//")) {
@@ -40,8 +41,10 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith("/agent")) {
     if (!user) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("next", fullPath || "/agent");
+      const loginUrl = new URL("/admin-login", request.url);
+      if (fullPath && fullPath !== "/agent") {
+        loginUrl.searchParams.set("next", fullPath);
+      }
       const redirectResponse = NextResponse.redirect(loginUrl);
       copyCookies(response, redirectResponse);
       return redirectResponse;

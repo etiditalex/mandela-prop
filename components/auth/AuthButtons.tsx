@@ -42,7 +42,7 @@ export function AuthButtons({
 
   if (authUnavailable) return null;
 
-  const agentLoginHref = "/login?next=/agent";
+  const agentLoginHref = "/admin-login";
 
   if (!user) {
     return (
@@ -62,9 +62,9 @@ export function AuthButtons({
         <Link
           href={agentLoginHref}
           className={clsx("text-sm font-medium text-zinc-700 hover:text-brand", linkClassName)}
-          title="Agent dashboard — sign in"
+          title="Admin dashboard — sign in"
         >
-          Agent
+          Admin
         </Link>
       </div>
     );

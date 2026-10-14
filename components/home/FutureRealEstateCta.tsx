@@ -18,7 +18,7 @@ export function FutureRealEstateCta() {
           priority={false}
         />
         <div
-          className="absolute inset-0 bg-brand/70 backdrop-blur-[2px] sm:bg-brand/65 sm:backdrop-blur-md"
+          className="absolute inset-0 bg-[rgba(4,102,102,0.78)] backdrop-blur-[2px] sm:bg-[rgba(4,102,102,0.72)] sm:backdrop-blur-md"
           aria-hidden
         />
       </div>
@@ -47,7 +47,7 @@ export function FutureRealEstateCta() {
           <div className="shrink-0 lg:pb-1">
             <Link
               href="/contact"
-              className="inline-flex items-center justify-center rounded-md bg-white px-8 py-4 text-center text-xs font-bold uppercase tracking-[0.2em] text-brand shadow-lg transition hover:bg-white/95 sm:text-sm"
+              className="inline-flex items-center justify-center rounded-md bg-brand px-8 py-4 text-center text-xs font-bold uppercase tracking-[0.2em] text-black shadow-lg transition hover:bg-brand/80 sm:text-sm"
             >
               Free consultation
             </Link>

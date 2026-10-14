@@ -9,21 +9,21 @@ export const metadata: Metadata = {
 export default function ServicesPage() {
   return (
     <section>
-      <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-brand text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,#123f2e_0%,#1a5a42_52%,#123f2e_100%)]" />
+      <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border-b-2 border-brand bg-black text-white">
+        <div className="absolute inset-0 bg-black" />
         <div className="absolute inset-y-0 left-0 w-full bg-[url('https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=2000&q=80')] bg-cover bg-center opacity-20 lg:w-[70%]" />
-        <div className="absolute inset-y-0 left-0 w-full bg-[linear-gradient(180deg,rgba(18,63,46,0.2)_0%,rgba(18,63,46,0.8)_100%)] lg:w-[70%]" />
+        <div className="absolute inset-y-0 left-0 w-full bg-[linear-gradient(180deg,rgba(0,0,0,0.2)_0%,rgba(0,0,0,0.8)_100%)] lg:w-[70%]" />
 
         <div className="relative mx-auto flex min-h-[15rem] w-full max-w-[88rem] items-end px-4 pb-6 sm:min-h-[20rem] sm:px-8 sm:pb-12 lg:min-h-[26rem] lg:px-12 lg:pb-14">
           <div className="w-full max-w-3xl">
             <p className="text-base font-semibold text-white/95 sm:text-lg">What We Offer</p>
-            <div className="mt-3 h-[2px] w-full bg-[#d8c17a]" />
+            <div className="mt-3 h-[2px] w-full bg-brand" />
             <h1 className="mt-6 text-3xl font-semibold leading-none sm:mt-8 sm:text-6xl">Services</h1>
           </div>
         </div>
       </div>
 
-      <section className="bg-[#d7e9de] px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
+      <section className="bg-[#f3ffff] px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
         <div className="mx-auto grid w-full max-w-7xl gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold text-zinc-900">How We Can Help</p>
@@ -84,7 +84,7 @@ export default function ServicesPage() {
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-zinc-800 text-zinc-900 sm:h-14 sm:w-14">
               <Building2 className="h-5 w-5 sm:h-6 sm:w-6" />
             </span>
-            <h2 className="text-3xl font-semibold leading-tight text-brand sm:text-4xl lg:text-5xl">
+            <h2 className="text-3xl font-semibold leading-tight text-black sm:text-4xl lg:text-5xl">
               Real Estate
               <br />
               Due Diligence
@@ -101,7 +101,7 @@ export default function ServicesPage() {
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-zinc-800 text-zinc-900 sm:h-14 sm:w-14">
               <BriefcaseBusiness className="h-5 w-5 sm:h-6 sm:w-6" />
             </span>
-            <h2 className="text-3xl font-semibold leading-tight text-brand sm:text-4xl lg:text-5xl">
+            <h2 className="text-3xl font-semibold leading-tight text-black sm:text-4xl lg:text-5xl">
               Portfolio
               <br />
               Services
@@ -118,7 +118,7 @@ export default function ServicesPage() {
             <span className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-zinc-800 text-zinc-900 sm:h-14 sm:w-14">
               <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6" />
             </span>
-            <h2 className="text-3xl font-semibold leading-tight text-brand sm:text-4xl lg:text-5xl">
+            <h2 className="text-3xl font-semibold leading-tight text-black sm:text-4xl lg:text-5xl">
               Real Estate
               <br />
               Market Studies

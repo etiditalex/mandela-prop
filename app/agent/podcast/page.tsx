@@ -303,7 +303,7 @@ export default function PodcastAdminPage() {
                       href={r.youtube_url}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-xs font-medium text-karim-800 underline underline-offset-2"
+                      className="text-xs font-medium text-black underline underline-offset-2"
                     >
                       Open
                     </a>

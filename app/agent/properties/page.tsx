@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Building2, Home, Layers, RefreshCw, Sparkles } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { landCategoryList, type LandListingTitle } from "@/lib/land";
+import { isLandType, landCategoryList, type LandListingTitle } from "@/lib/land";
 import { properties as demoProperties } from "@/lib/properties";
 import { AgentPageHeader } from "@/components/admin/AgentPageHeader";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +24,14 @@ type DemoPropertyRow = Property & {
 const residentialPropertyTypes = ["Apartment", "Villa", "Penthouse", "Townhouse"] as const;
 type ResidentialPropertyType = (typeof residentialPropertyTypes)[number];
 
+const rentalUnitTypes = ["Ensuite", "1 Bedroom", "2 Bedrooms", "3 Bedrooms", "4 Bedrooms", "Own compound"] as const;
+
+function bedroomsFromRentalType(value: string) {
+  if (value === "Ensuite") return 0;
+  const match = /^(\d+)\s+Bedroom/i.exec(value);
+  return match ? Number(match[1]) : null;
+}
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -31,10 +39,6 @@ function slugify(value: string) {
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
-}
-
-function isLandType(value: string) {
-  return landCategoryList.some((c) => c.title === value);
 }
 
 function formatListingPrice(value: number) {
@@ -92,6 +96,12 @@ function parseNumberInput(value: unknown): number {
   return Number(normalized);
 }
 
+function parseWholeNumber(value: unknown) {
+  const parsed = parseNumberInput(value);
+  if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) return NaN;
+  return parsed;
+}
+
 // Note: we intentionally avoid browser-side `auth.getUser()` / role checks here.
 // On some Windows/OneDrive/proxy/TLS setups these can hang and show “Session lookup timed out”.
 // All property CRUD is enforced by the server routes (`/api/properties`) + Supabase RLS.
@@ -99,7 +109,7 @@ function parseNumberInput(value: unknown): number {
 function listingStatusClass(status: PropertyRow["status"]) {
   switch (status) {
     case "available":
-      return "bg-karim-50 text-karim-800 ring-1 ring-karim-100";
+      return "bg-karim-50 text-black ring-1 ring-karim-100";
     case "sold":
       return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
     case "rented":
@@ -143,36 +153,6 @@ async function runWithConcurrency<T, R>(
   return results;
 }
 
-async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  attempts = 3,
-  baseDelayMs = 500,
-) {
-  let lastErr: unknown;
-  for (let i = 0; i < attempts; i += 1) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      const message = err instanceof Error ? err.message.toLowerCase() : "";
-      const isRetryable =
-        message.includes("failed to fetch") ||
-        message.includes("network") ||
-        message.includes("timeout") ||
-        message.includes("rate limit") ||
-        message.includes("too many requests") ||
-        message.includes("429");
-      if (!isRetryable || i === attempts - 1) {
-        throw err;
-      }
-      const delay = baseDelayMs * Math.pow(2, i);
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((r) => setTimeout(r, delay));
-    }
-  }
-  throw lastErr;
-}
-
 function assertImageAcceptable(file: File) {
   const maxBytes = 12 * 1024 * 1024; // 12MB
   if (file.size > maxBytes) {
@@ -185,42 +165,49 @@ function assertImageAcceptable(file: File) {
   }
 }
 
-async function compressImageForUpload(file: File) {
-  // Keep small files as-is (fast path).
-  if (file.size <= 900 * 1024) return file;
+function formatPhotoSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
-  // Prefer modern formats for photos; keep PNG/GIF as-is (logos/screenshots).
+async function compressImageForUpload(file: File) {
   const typeLower = file.type.toLowerCase();
   const nameLower = file.name.toLowerCase();
-  const isPng = typeLower.includes("png") || nameLower.endsWith(".png");
   const isGif = typeLower.includes("gif") || nameLower.endsWith(".gif");
-  if (isPng || isGif) return file;
+  if (isGif) return file;
+
+  const isJpeg =
+    typeLower.includes("jpeg") || typeLower.includes("jpg") || nameLower.endsWith(".jpg") || nameLower.endsWith(".jpeg");
+  // Already a small photo. Skip the decode so picking files stays instant.
+  if (isJpeg && file.size <= 700 * 1024) return file;
 
   try {
-    const bitmap = await createImageBitmap(file);
-    const maxDim = 1400; // smaller = faster uploads on slow connections
-    const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
-    const targetW = Math.max(1, Math.round(bitmap.width * scale));
-    const targetH = Math.max(1, Math.round(bitmap.height * scale));
+    const source = await createImageBitmap(file);
+    const maxEdge = 1600;
+    const scale = Math.min(1, maxEdge / Math.max(source.width, source.height));
+    const targetW = Math.max(1, Math.round(source.width * scale));
+    const targetH = Math.max(1, Math.round(source.height * scale));
 
     const canvas = document.createElement("canvas");
     canvas.width = targetW;
     canvas.height = targetH;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return file;
-    ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) {
+      source.close();
+      return file;
+    }
+    ctx.drawImage(source, 0, 0, targetW, targetH);
+    source.close();
 
     const blob: Blob | null = await new Promise((resolve) => {
-      // JPEG is most compatible for photos; WebP can be blocked by some tooling.
-      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.78);
+      canvas.toBlob((next) => resolve(next), "image/jpeg", 0.72);
     });
+    canvas.width = 0;
+    canvas.height = 0;
     if (!blob) return file;
+    if (isJpeg && blob.size >= file.size) return file;
 
-    // If compression didn't help, keep original.
-    if (blob.size >= file.size) return file;
-
-    const compressedName = file.name.replace(/\.[^.]+$/, "") + ".jpg";
-    return new File([blob], compressedName, { type: "image/jpeg" });
+    return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
   } catch {
     return file;
   }
@@ -231,38 +218,36 @@ async function uploadPropertyImageViaApi(propertyId: string, file: File, isPrima
   const uploadFile = await compressImageForUpload(file);
   assertImageAcceptable(uploadFile);
 
-  await retryWithBackoff(async () => {
-    const formData = new FormData();
-    formData.append("propertyId", propertyId);
-    formData.append("isPrimary", String(isPrimary));
-    formData.append("file", uploadFile);
+  const supabase = createSupabaseBrowserClient();
+  const extension = uploadFile.name.split(".").pop() || "jpg";
+  const path = `${propertyId}/${crypto.randomUUID()}.${extension}`;
 
-    const resp = await withTimeout(
-      fetch("/api/property-images", {
-        method: "POST",
-        body: formData,
-        credentials: "same-origin",
-        headers: { Accept: "application/json" },
-      }),
-      120000,
-      "Image upload is taking too long. Try again, or refresh and add images later.",
-    );
+  const { error: uploadError } = await withTimeout(
+    supabase.storage.from("property-images").upload(path, uploadFile, {
+      upsert: false,
+      contentType: uploadFile.type || "image/jpeg",
+      cacheControl: "31536000",
+    }),
+    45000,
+    "Image upload is taking too long. Try a smaller photo, or add images from the listing after it is saved.",
+  );
+  if (uploadError) throw new Error(friendlySupabaseError(uploadError.message));
 
-    if (!resp.ok) {
-      let errorMessage = `Image upload failed with status ${resp.status}.`;
-      try {
-        const json = (await resp.json().catch(() => null)) as { error?: string } | null;
-        if (json?.error) {
-          errorMessage = friendlySupabaseError(json.error);
-        }
-      } catch {
-        // ignore parse errors
-      }
-      throw new Error(errorMessage);
-    }
-
-    return resp;
-  }, 3, 700);
+  const { data: publicUrlData } = supabase.storage.from("property-images").getPublicUrl(path);
+  const { error: imageError } = await withTimeout<{
+    data: unknown;
+    error: { message: string } | null;
+  }>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from("property_images").insert({
+      property_id: propertyId,
+      image_url: publicUrlData.publicUrl,
+      is_primary: isPrimary,
+    }),
+    15000,
+    "The photo uploaded, but saving it to the listing timed out. Refresh and check the listing.",
+  );
+  if (imageError) throw new Error(friendlySupabaseError(imageError.message));
 }
 
 const DESCRIPTION_FORMAT_HINT =
@@ -536,11 +521,7 @@ function PropertyEditModal({
   const [bathrooms, setBathrooms] = useState(String(property.bathrooms));
   const [size, setSize] = useState(String(property.size));
   const [status, setStatus] = useState<PropertyRow["status"]>(property.status);
-  const [residentialType, setResidentialType] = useState<ResidentialPropertyType>(
-    residentialPropertyTypes.includes(property.property_type as ResidentialPropertyType)
-      ? (property.property_type as ResidentialPropertyType)
-      : residentialPropertyTypes[0],
-  );
+  const [residentialType, setResidentialType] = useState(property.property_type);
   const [landType, setLandType] = useState<LandListingTitle>(
     landInitially
       ? (property.property_type as LandListingTitle)
@@ -708,7 +689,7 @@ function PropertyEditModal({
               <p className="text-sm font-semibold text-slate-900">Images</p>
               <p className="text-xs text-slate-500">Upload and manage listing photos.</p>
             </div>
-            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-karim-800 transition hover:bg-karim-50 disabled:cursor-not-allowed disabled:opacity-60">
+            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-karim-50 disabled:cursor-not-allowed disabled:opacity-60">
               {uploadingImage ? "Uploading..." : "Add images"}
               <input
                 className="hidden"
@@ -735,7 +716,7 @@ function PropertyEditModal({
                     loading="lazy"
                   />
                   {img.is_primary ? (
-                    <span className="absolute left-2 top-2 rounded-full bg-karim-700/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-black">
                       Primary
                     </span>
                   ) : null}
@@ -745,7 +726,7 @@ function PropertyEditModal({
                         type="button"
                         onClick={() => void onSetPrimaryImage(img.id)}
                         disabled={deletingImageId === img.id}
-                        className="rounded px-2 py-1 text-[10px] font-semibold text-white bg-karim-700 hover:bg-karim-800 transition disabled:opacity-50"
+                        className="rounded px-2 py-1 text-[10px] font-semibold text-black bg-brand hover:bg-karim-800 transition disabled:opacity-50"
                         title="Set as primary image"
                       >
                         Set Primary
@@ -786,7 +767,12 @@ function PropertyEditModal({
           <select
             id="edit_listing_kind"
             value={listingKind}
-            onChange={(event) => setListingKind(event.target.value as PropertyRow["listing_kind"])}
+            onChange={(event) => {
+              const next = event.target.value as PropertyRow["listing_kind"];
+              setListingKind(next);
+              const options = (next === "rent" ? rentalUnitTypes : residentialPropertyTypes) as readonly string[];
+              if (!options.includes(residentialType)) setResidentialType(options[0]);
+            }}
             className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           >
             <option value="sale">For sale</option>
@@ -819,20 +805,23 @@ function PropertyEditModal({
           </label>
         ) : (
           <label className="grid gap-2 text-sm text-zinc-700" htmlFor="edit_residential_type">
-            <span className="font-medium">Property type</span>
+            <span className="font-medium">{listingKind === "rent" ? "Rental type" : "Property type"}</span>
             <select
               id="edit_residential_type"
               value={residentialType}
-              onChange={(event) =>
-                setResidentialType(event.target.value as ResidentialPropertyType)
-              }
+              onChange={(event) => setResidentialType(event.target.value)}
               className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
             >
-              {residentialPropertyTypes.map((type) => (
+              {(listingKind === "rent" ? rentalUnitTypes : residentialPropertyTypes).map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
               ))}
+              {(listingKind === "rent" ? rentalUnitTypes : residentialPropertyTypes).some(
+                (type) => type === residentialType,
+              ) ? null : (
+                <option value={residentialType}>{residentialType}</option>
+              )}
             </select>
           </label>
         )}
@@ -940,16 +929,26 @@ export default function AgentPropertiesPage() {
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
   const [createImages, setCreateImages] = useState<File[]>([]);
+  const [imageInputKey, setImageInputKey] = useState(0);
+  const [imageNote, setImageNote] = useState<string | null>(null);
+  const [createPhase, setCreatePhase] = useState<"saving" | "images" | null>(null);
+  const imagePrepareToken = useRef(0);
+  const imagePreparePromise = useRef<Promise<File[]>>(Promise.resolve([]));
   const [editTarget, setEditTarget] = useState<PropertyWithImagesRow | null>(null);
   const [demoEditTarget, setDemoEditTarget] = useState<DemoPropertyRow | null>(null);
   const [listingCategory, setListingCategory] = useState<"property" | "land">("property");
   const [listingKind, setListingKind] = useState<PropertyRow["listing_kind"]>("sale");
-  const [selectedPropertyType, setSelectedPropertyType] = useState<ResidentialPropertyType>(
-    residentialPropertyTypes[0],
-  );
-  const [selectedLandType, setSelectedLandType] = useState<LandListingTitle>(
-    landCategoryList[0].title,
-  );
+  const [selectedPropertyType, setSelectedPropertyType] = useState<string>(residentialPropertyTypes[0]);
+  const [selectedLandType, setSelectedLandType] = useState<LandListingTitle>(landCategoryList[0].title);
+  const [createTitle, setCreateTitle] = useState("");
+  const [createLocation, setCreateLocation] = useState("");
+  const [createPrice, setCreatePrice] = useState("");
+  const [createBedrooms, setCreateBedrooms] = useState("");
+  const [createBathrooms, setCreateBathrooms] = useState("");
+  const [createSize, setCreateSize] = useState("");
+  const [createMeta, setCreateMeta] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createStatus, setCreateStatus] = useState<PropertyRow["status"]>("available");
 
   const seedFrontendProperties = async () => {
     const supabase = createSupabaseBrowserClient();
@@ -1122,141 +1121,162 @@ export default function AgentPropertiesPage() {
     }
   };
 
+  const resetCreateForm = () => {
+    setCreateTitle("");
+    setCreateLocation("");
+    setCreatePrice("");
+    setCreateBedrooms("");
+    setCreateBathrooms("");
+    setCreateSize("");
+    setCreateMeta("");
+    setCreateDescription("");
+    setCreateStatus("available");
+    setListingCategory("property");
+    setListingKind("sale");
+    setSelectedPropertyType(residentialPropertyTypes[0]);
+    setSelectedLandType(landCategoryList[0].title);
+    setCreateImages([]);
+    setImageNote(null);
+    imagePrepareToken.current += 1;
+    imagePreparePromise.current = Promise.resolve([]);
+    setImageInputKey((current) => current + 1);
+  };
+
+  const onSelectCreateImages = (list: FileList | null) => {
+    const selected = Array.from(list ?? []);
+    const token = imagePrepareToken.current + 1;
+    imagePrepareToken.current = token;
+    setCreateImages(selected);
+    if (!selected.length) {
+      setImageNote(null);
+      imagePreparePromise.current = Promise.resolve([]);
+      return;
+    }
+
+    const originalBytes = selected.reduce((total, file) => total + file.size, 0);
+    setImageNote(`Preparing ${selected.length} photo${selected.length === 1 ? "" : "s"}…`);
+    const job = runWithConcurrency(selected, 2, (file) => compressImageForUpload(file)).then((prepared) => {
+      if (imagePrepareToken.current !== token) return prepared;
+      setCreateImages(prepared);
+      const preparedBytes = prepared.reduce((total, file) => total + file.size, 0);
+      const shrunk = preparedBytes < originalBytes ? ` (${formatPhotoSize(preparedBytes)})` : "";
+      setImageNote(
+        `${prepared.length} photo${prepared.length === 1 ? "" : "s"} ready${shrunk}. The first image is the cover.`,
+      );
+      return prepared;
+    });
+    imagePreparePromise.current = job;
+  };
+
   const onCreate = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setCreating(true);
+    setCreatePhase("saving");
     setError(null);
     setMessage(null);
-    const formEl = event.currentTarget;
-    const formData = new FormData(event.currentTarget);
 
     try {
-      const title = String(formData.get("title") ?? "").trim();
+      const title = createTitle.trim();
+      const location = createLocation.trim();
+      const description = createDescription.trim();
+      const sizeRaw = createSize.trim();
+      const propertyType = listingCategory === "land" ? selectedLandType : selectedPropertyType;
+      const priceNum = parseNumberInput(createPrice);
+      const inferredBedrooms =
+        listingCategory !== "land" && listingKind === "rent" ? bedroomsFromRentalType(selectedPropertyType) : null;
+      const bedroomsNum =
+        listingCategory === "land"
+          ? 0
+          : createBedrooms.trim()
+            ? parseWholeNumber(createBedrooms)
+            : inferredBedrooms ?? NaN;
+      const bathroomsNum = listingCategory === "land" ? 0 : parseWholeNumber(createBathrooms);
+
       if (title.length < 3) {
         setError("Title must be at least 3 characters.");
-        setCreating(false);
         return;
       }
-      const slug = slugify(title);
-      const propertyType =
-        listingCategory === "land" ? selectedLandType : selectedPropertyType;
-      const description = String(formData.get("description") ?? "").trim();
-      if (description.length < 10) {
-        setError("Description must be at least 10 characters.");
-        setCreating(false);
-        return;
-      }
-      const metaDescription = String(formData.get("meta_description") ?? "").trim();
-      const location = String(formData.get("location") ?? "").trim();
       if (location.length < 2) {
         setError("Location is required.");
-        setCreating(false);
         return;
       }
-      const priceRaw = String(formData.get("price") ?? "").trim();
-      const priceNum = parseNumberInput(priceRaw);
+      if (description.length < 10) {
+        setError("Description must be at least 10 characters.");
+        return;
+      }
       if (!Number.isFinite(priceNum) || priceNum < 0) {
         setError(
           listingCategory === "land"
-            ? "For land listings, Price must be numeric (e.g. 2000000). Put measurements like 50*100, 100*100, or acre values in the Size field."
-            : "Price must be a valid non-negative number.",
+            ? "Price must be a number, such as 2000000 or 2,000,000. Put plot size in the Size field."
+            : "Price must be a number, such as 2000000 or 2,000,000.",
         );
-        setCreating(false);
         return;
       }
-
-      const bedroomsNum = listingCategory === "land" ? 0 : parseNumberInput(formData.get("bedrooms"));
-      const bathroomsNum = listingCategory === "land" ? 0 : parseNumberInput(formData.get("bathrooms"));
-      if (
-        listingCategory !== "land" &&
-        (!Number.isFinite(bedroomsNum) || bedroomsNum < 0 || !Number.isFinite(bathroomsNum) || bathroomsNum < 0)
-      ) {
-        setError("Bedrooms and bathrooms must be valid non-negative numbers.");
-        setCreating(false);
+      if (listingCategory !== "land" && (!Number.isFinite(bedroomsNum) || bedroomsNum < 0)) {
+        setError("Bedrooms must be a whole number, or choose a rental type that sets them.");
         return;
       }
-
-      const sizeRaw = String(formData.get("size") ?? "").trim();
-      if (listingCategory === "land" && !sizeRaw) {
+      if (listingCategory !== "land" && (!Number.isFinite(bathroomsNum) || bathroomsNum < 0)) {
+        setError("Bathrooms must be a whole number.");
+        return;
+      }
+      if (!sizeRaw) {
         setError(
-          'Land size is required. Enter dimensions (e.g. "50*100") or acreage (e.g. "1 acre").',
+          listingCategory === "land"
+            ? 'Land size is required. Use dimensions such as 50x100 or acreage such as 1 acre.'
+            : "Size is required. Enter the floor area in square feet.",
         );
-        setCreating(false);
         return;
       }
 
-      const payload = {
+      const insertedProperty = await insertPropertyWithUniqueSlug({
         title,
-        slug,
+        slug: slugify(title),
         description,
-        meta_description: metaDescription,
+        meta_description: createMeta.trim(),
         price: priceNum,
         location,
         property_type: propertyType,
         bedrooms: bedroomsNum,
         bathrooms: bathroomsNum,
-        size: sizeRaw || String(formData.get("size") ?? ""),
+        size: sizeRaw,
         listing_kind: listingKind,
-        status: "available" as const,
-      };
+        status: createStatus,
+        agent_id: "",
+      });
 
-      const insertedProperty = await withTimeout(
-        // insertPropertyWithUniqueSlug expects a typed DB Insert shape; we keep payload minimal here.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        insertPropertyWithUniqueSlug(payload as any),
-        20000,
-        "Creating timed out while saving the listing. Check your Supabase connection and try again.",
-      );
-
-      if (insertedProperty && createImages.length) {
-        // Don't block the "Create" UX on image uploads (network/CDN can be slow).
-        // We upload in the background and refresh once done.
-        setMessage("Property created. Uploading images in background…");
-        const filesToUpload = [...createImages];
-        void (async () => {
-          const failures: string[] = [];
+      setCreatePhase("images");
+      setMessage(createImages.length ? "Preparing photos…" : null);
+      const filesToUpload = await imagePreparePromise.current;
+      const failures: string[] = [];
+      if (filesToUpload.length) {
+        let finished = 0;
+        setMessage(`Uploading ${filesToUpload.length} photo${filesToUpload.length === 1 ? "" : "s"}…`);
+        await runWithConcurrency(filesToUpload, 3, async (file, index) => {
           try {
-            await withTimeout(
-              runWithConcurrency(filesToUpload, Math.min(filesToUpload.length, 4), async (file, index) => {
-                try {
-                  await uploadImageForProperty(insertedProperty.id, file, index === 0);
-                } catch (err) {
-                  failures.push(err instanceof Error ? err.message : "An image failed to upload.");
-                }
-              }),
-              420000,
-              "Image uploads are taking too long. You can refresh and add images from the inventory list.",
-            );
+            await uploadImageForProperty(insertedProperty.id, file, index === 0);
           } catch (err) {
-            failures.push(err instanceof Error ? err.message : "Image upload timed out.");
+            failures.push(err instanceof Error ? err.message : "An image failed to upload.");
+          } finally {
+            finished += 1;
+            setMessage(`Uploaded ${finished} of ${filesToUpload.length}…`);
           }
-
-          if (failures.length > 0) {
-            console.error("Property image upload failures", {
-              propertyId: insertedProperty.id,
-              failures,
-            });
-            const firstFailure = failures[0] ?? "An unknown image upload error occurred.";
-            setMessage(
-              `Property created, but ${failures.length} image(s) failed to upload: ${firstFailure}. You can add them from the inventory list.`,
-            );
-            return;
-          }
-
-          setMessage("Property created successfully.");
-          await load();
-        })();
+        });
       }
 
-      formEl?.reset?.();
-      setListingCategory("property");
-      setListingKind("sale");
-      setSelectedPropertyType(residentialPropertyTypes[0]);
-      setSelectedLandType(landCategoryList[0].title);
-      setCreateImages([]);
-      await withTimeout(load(), 12000, "Created, but refresh timed out. Click Refresh to reload.");
-      if (!createImages.length) {
-        setMessage("Property created successfully.");
+      resetCreateForm();
+      try {
+        await load();
+      } catch {
+        // The listing is already saved. A slow refresh should not look like a failed create.
+      }
+
+      if (failures.length) {
+        setMessage(
+          `Property added. ${failures.length} image${failures.length === 1 ? "" : "s"} did not upload: ${failures[0]}. Use Image on the listing to try again.`,
+        );
+      } else {
+        setMessage("Property added. It is now in the inventory and on the public site.");
       }
     } catch (createError) {
       if (createError instanceof Error) {
@@ -1266,6 +1286,7 @@ export default function AgentPropertiesPage() {
       }
     } finally {
       setCreating(false);
+      setCreatePhase(null);
     }
   };
 
@@ -1357,7 +1378,7 @@ export default function AgentPropertiesPage() {
             <button
               type="button"
               onClick={() => void load()}
-              className="inline-flex items-center gap-2 rounded-xl border border-karim-200 bg-karim-50 px-4 py-2 text-sm font-semibold text-karim-800 shadow-sm transition hover:bg-karim-100"
+              className="inline-flex items-center gap-2 rounded-xl border border-karim-200 bg-karim-50 px-4 py-2 text-sm font-semibold text-black shadow-sm transition hover:bg-karim-100"
             >
               <RefreshCw className="h-4 w-4" />
               Refresh
@@ -1372,7 +1393,7 @@ export default function AgentPropertiesPage() {
             </button>
             <a
               href="/"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-karim-700 text-white shadow-sm transition hover:bg-karim-800"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-black shadow-sm transition hover:bg-karim-800"
               aria-label="Site settings shortcut"
               title="Public site"
             >
@@ -1384,7 +1405,7 @@ export default function AgentPropertiesPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-black">
             <Layers className="h-6 w-6" />
           </span>
           <div>
@@ -1393,7 +1414,7 @@ export default function AgentPropertiesPage() {
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-black">
             <Building2 className="h-6 w-6" />
           </span>
           <div>
@@ -1415,20 +1436,17 @@ export default function AgentPropertiesPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
             <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
               <div className="mb-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">New listing</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-black">New listing</p>
                 <h3 className="mt-1 text-xl font-bold text-slate-900">Add property</h3>
               </div>
 
-              <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-1" onSubmit={onCreate}>
+              <form className="grid gap-4" onSubmit={onCreate}>
                 <label className="grid gap-2 text-sm text-zinc-700" htmlFor="listing_category">
-                  <span className="font-medium">Listing Category</span>
+                  <span className="font-medium">Listing category</span>
                   <select
                     id="listing_category"
-                    name="listing_category"
                     value={listingCategory}
-                    onChange={(event) =>
-                      setListingCategory(event.target.value as "property" | "land")
-                    }
+                    onChange={(event) => setListingCategory(event.target.value as "property" | "land")}
                     className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   >
                     <option value="property">Property</option>
@@ -1439,27 +1457,34 @@ export default function AgentPropertiesPage() {
                   <span className="font-medium">Listing type</span>
                   <select
                     id="listing_kind"
-                    name="listing_kind"
                     value={listingKind}
-                    onChange={(event) => setListingKind(event.target.value as PropertyRow["listing_kind"])}
+                    onChange={(event) => {
+                      const next = event.target.value as PropertyRow["listing_kind"];
+                      setListingKind(next);
+                      const rentTypes = rentalUnitTypes as readonly string[];
+                      const saleTypes = residentialPropertyTypes as readonly string[];
+                      if (next === "rent" && !rentTypes.includes(selectedPropertyType)) {
+                        setSelectedPropertyType("1 Bedroom");
+                      }
+                      if (next === "sale" && !saleTypes.includes(selectedPropertyType)) {
+                        setSelectedPropertyType(residentialPropertyTypes[0]);
+                      }
+                    }}
                     className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   >
                     <option value="sale">For sale</option>
                     <option value="rent">For rent</option>
                   </select>
                 </label>
-                <Input id="title" name="title" label="Title" required />
-                <Input id="location" name="location" label="Location" required />
+                <Input id="title" label="Title" value={createTitle} onChange={(event) => setCreateTitle(event.target.value)} required />
+                <Input id="location" label="Location" value={createLocation} onChange={(event) => setCreateLocation(event.target.value)} required />
                 {listingCategory === "land" ? (
                   <label className="grid gap-2 text-sm text-zinc-700" htmlFor="property_type_land">
-                    <span className="font-medium">Land Type</span>
+                    <span className="font-medium">Land type</span>
                     <select
                       id="property_type_land"
-                      name="property_type_land"
                       value={selectedLandType}
-                      onChange={(event) =>
-                        setSelectedLandType(event.target.value as LandListingTitle)
-                      }
+                      onChange={(event) => setSelectedLandType(event.target.value as LandListingTitle)}
                       className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                     >
                       {landCategoryList.map((category) => (
@@ -1471,17 +1496,14 @@ export default function AgentPropertiesPage() {
                   </label>
                 ) : (
                   <label className="grid gap-2 text-sm text-zinc-700" htmlFor="property_type">
-                    <span className="font-medium">Property Type</span>
+                    <span className="font-medium">{listingKind === "rent" ? "Rental type" : "Property type"}</span>
                     <select
                       id="property_type"
-                      name="property_type"
                       value={selectedPropertyType}
-                      onChange={(event) =>
-                        setSelectedPropertyType(event.target.value as ResidentialPropertyType)
-                      }
+                      onChange={(event) => setSelectedPropertyType(event.target.value)}
                       className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                     >
-                      {residentialPropertyTypes.map((type) => (
+                      {(listingKind === "rent" ? rentalUnitTypes : residentialPropertyTypes).map((type) => (
                         <option key={type} value={type}>
                           {type}
                         </option>
@@ -1489,101 +1511,113 @@ export default function AgentPropertiesPage() {
                     </select>
                   </label>
                 )}
+                <label className="grid gap-2 text-sm text-zinc-700" htmlFor="create_status">
+                  <span className="font-medium">Status</span>
+                  <select
+                    id="create_status"
+                    value={createStatus}
+                    onChange={(event) => setCreateStatus(event.target.value as PropertyRow["status"])}
+                    className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
+                  >
+                    <option value="available">Available</option>
+                    <option value="sold">Sold</option>
+                    <option value="rented">Rented</option>
+                  </select>
+                </label>
                 <Input
                   id="price"
-                  name="price"
-                  type="number"
-                  min={0}
-                  step={1}
-                  label="Price"
-                  placeholder="e.g. 2000000"
+                  type="text"
+                  inputMode="decimal"
+                  label={listingKind === "rent" && listingCategory !== "land" ? "Monthly rent" : "Price"}
+                  placeholder="e.g. 2,000,000"
+                  value={createPrice}
+                  onChange={(event) => setCreatePrice(event.target.value)}
                   required
                 />
-                {listingCategory === "land" && (
-                  <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2 md:col-span-2">
-                    <span className="font-semibold">Land price:</span> Enter the property price as a numeric value only (currency amount). Do not enter measurements here.
-                  </p>
-                )}
-                {listingCategory !== "land" && (
-                  <Input id="bedrooms" name="bedrooms" type="number" label="Bedrooms" required />
-                )}
-                {listingCategory !== "land" && (
-                  <Input id="bathrooms" name="bathrooms" type="number" label="Bathrooms" required />
-                )}
                 {listingCategory === "land" ? (
-                  <label className="grid gap-2 text-sm text-zinc-700" htmlFor="size">
-                    <span className="font-medium">Land Size / Dimensions</span>
-                    <input
-                      id="size"
-                      name="size"
-                      type="text"
-                      inputMode="text"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      placeholder="e.g., 50x100, 1 acre, 2 acres"
-                      required
-                      className="h-11 rounded-sm border border-zinc-300 bg-white px-3 text-sm text-black outline-none transition-colors placeholder:text-zinc-400 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
-                    />
-                  </label>
-                ) : (
+                  <p className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    Enter the price as a number. Put plot measurements in Size.
+                  </p>
+                ) : null}
+                {listingCategory !== "land" ? (
                   <Input
-                    id="size"
-                    name="size"
-                    type="number"
-                    label="Size (sqft)"
-                    placeholder=""
+                    id="bedrooms"
+                    type="text"
+                    inputMode="numeric"
+                    label="Bedrooms"
+                    placeholder={listingKind === "rent" ? "Leave blank to use the rental type" : "e.g. 3"}
+                    value={createBedrooms}
+                    onChange={(event) => setCreateBedrooms(event.target.value)}
+                    required={listingKind !== "rent"}
+                  />
+                ) : null}
+                {listingCategory !== "land" ? (
+                  <Input
+                    id="bathrooms"
+                    type="text"
+                    inputMode="numeric"
+                    label="Bathrooms"
+                    placeholder="e.g. 2"
+                    value={createBathrooms}
+                    onChange={(event) => setCreateBathrooms(event.target.value)}
                     required
                   />
-                )}
-                {listingCategory === "land" && (
-                  <p className="text-xs text-karim-800 bg-karim-50 border border-karim-200 rounded px-3 py-2 md:col-span-2">
-                    <span className="font-semibold">Land size format:</span> Enter acreage (e.g., &quot;1 acre&quot;), dimensions (e.g., &quot;50x100 ft&quot;), or hectares (e.g., &quot;0.5 hectares&quot;). This field is flexible.
-                  </p>
-                )}
-                <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="meta_description">
+                ) : null}
+                <Input
+                  id="size"
+                  type="text"
+                  label={listingCategory === "land" ? "Land size" : "Size (sqft)"}
+                  placeholder={listingCategory === "land" ? "e.g. 50x100 or 1 acre" : "e.g. 2400"}
+                  value={createSize}
+                  onChange={(event) => setCreateSize(event.target.value)}
+                  required
+                />
+                <label className="grid gap-2 text-sm text-zinc-700" htmlFor="meta_description">
                   <span className="font-medium">Meta description</span>
                   <textarea
                     id="meta_description"
-                    name="meta_description"
                     rows={2}
-                    placeholder="Short SEO summary shown at the top of the listing (1–2 sentences)."
+                    value={createMeta}
+                    onChange={(event) => setCreateMeta(event.target.value)}
+                    placeholder="Short summary shown at the top of the listing."
                     className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   />
                 </label>
-                <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="description">
+                <label className="grid gap-2 text-sm text-zinc-700" htmlFor="description">
                   <span className="font-medium">Description</span>
                   <textarea
                     id="description"
-                    name="description"
                     required
                     rows={6}
+                    value={createDescription}
+                    onChange={(event) => setCreateDescription(event.target.value)}
                     placeholder={DESCRIPTION_FORMAT_HINT}
                     className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   />
                   <span className="text-xs text-zinc-500">{DESCRIPTION_FORMAT_HINT}</span>
                 </label>
-                <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="property_images">
-                  <span className="font-medium">Images from device (optional)</span>
+                <label className="grid gap-2 text-sm text-zinc-700" htmlFor="property_images">
+                  <span className="font-medium">Images</span>
                   <input
+                    key={imageInputKey}
                     id="property_images"
                     type="file"
                     accept="image/*"
                     multiple
-                    onChange={(event) => setCreateImages(Array.from(event.target.files ?? []))}
-                    className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-karim-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-karim-800 hover:file:bg-karim-100 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
+                    onChange={(event) => onSelectCreateImages(event.target.files)}
+                    className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-karim-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-black hover:file:bg-karim-100 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
                   />
-                  {createImages.length > 0 && (
-                    <p className="text-xs text-zinc-500">
-                      {createImages.length} image{createImages.length === 1 ? "" : "s"} selected.
-                    </p>
-                  )}
+                  <p className="text-xs text-zinc-500">
+                    {imageNote ??
+                      "Optional. Photos are resized as soon as you choose them, then sent together after the listing is saved."}
+                  </p>
                 </label>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="md:col-span-2 rounded-xl bg-karim-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-karim-800 disabled:opacity-50"
+                  className="rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-black shadow-sm transition hover:bg-karim-800 disabled:opacity-50"
                 >
-                  {creating ? "Creating..." : "Add property"}
+                  {createPhase === "images" ? "Uploading images..." : createPhase === "saving" ? "Saving listing..." : "Add property"}
                 </button>
               </form>
 
@@ -1596,7 +1630,7 @@ export default function AgentPropertiesPage() {
               className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm"
             >
               <div className="border-b border-slate-100 bg-slate-50/80 px-6 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-black">
                   Inventory
                 </p>
                 <h3 className="mt-1 text-lg font-bold text-slate-900">Current listings</h3>
@@ -1667,7 +1701,7 @@ export default function AgentPropertiesPage() {
                             >
                               Preview
                             </a>
-                            <label className="cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-karim-700 transition hover:border-karim-300 hover:bg-karim-50">
+                            <label className="cursor-pointer rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-black transition hover:border-karim-300 hover:bg-karim-50">
                               Image
                               <input
                                 className="hidden"

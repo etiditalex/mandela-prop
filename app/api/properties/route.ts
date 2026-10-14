@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { isLandType } from "@/lib/land";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getAllProperties } from "@/services/propertyService";
-import { isLandType } from "@/lib/land";
+import { Database } from "@/types/database";
 
 export async function GET() {
   const properties = await getAllProperties();
@@ -241,7 +242,6 @@ export async function PATCH(req: Request) {
 
   const title = String(body.title ?? "").trim();
   const description = String(body.description ?? "").trim();
-  const meta_description = String(body.meta_description ?? "").trim();
   const location = String(body.location ?? "").trim();
   const property_type = String(body.property_type ?? "").trim();
   const sizeRaw = String(body.size ?? "").trim();
@@ -304,11 +304,10 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "Unable to generate a valid slug from the title." }, { status: 400 });
   }
 
-  const payload = {
+  const payload: Database["public"]["Tables"]["properties"]["Update"] = {
     title,
     slug: baseSlug,
     description,
-    meta_description,
     price: Math.max(0, price),
     location,
     property_type,
@@ -317,7 +316,10 @@ export async function PATCH(req: Request) {
     size,
     listing_kind,
     status,
-  } as const;
+  };
+  if ("meta_description" in body) {
+    payload.meta_description = String(body.meta_description ?? "").trim();
+  }
 
   const maxAttempts = 6;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {

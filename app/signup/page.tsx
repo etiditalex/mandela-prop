@@ -60,7 +60,7 @@ export default function SignupPage() {
         </Button>
         <p className="text-sm text-zinc-600">
           Already registered?{" "}
-          <Link className="text-brand hover:underline" href="/login">
+          <Link className="text-black underline decoration-brand decoration-2 underline-offset-4" href="/login">
             Login
           </Link>
         </p>

@@ -8,7 +8,7 @@ export default async function LandPage() {
 
   return (
     <div className="bg-cream">
-      <section className="bg-brand px-4 py-20 text-white sm:px-6 lg:px-10">
+      <section className="border-b-2 border-brand bg-black px-4 py-20 text-white sm:px-6 lg:px-10">
         <div className="mx-auto max-w-7xl">
           <p className="text-sm uppercase tracking-[0.25em] text-white/75">Land Opportunities</p>
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">
@@ -39,7 +39,7 @@ export default async function LandPage() {
               <p className="mt-4 text-sm font-medium text-zinc-500">
                 {categoryCount} listing{categoryCount === 1 ? "" : "s"} available
               </p>
-              <span className="mt-6 inline-flex text-sm font-semibold text-brand">
+              <span className="mt-6 inline-flex text-sm font-semibold text-black underline decoration-brand decoration-2 underline-offset-4">
                 View category
               </span>
             </Link>
@@ -52,7 +52,7 @@ export default async function LandPage() {
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm uppercase tracking-[0.25em] text-brand">Live Inventory</p>
+              <p className="text-sm uppercase tracking-[0.25em] text-black underline decoration-brand decoration-2 underline-offset-4">Live Inventory</p>
               <h2 className="mt-3 text-3xl font-semibold">Available Land Listings</h2>
             </div>
           </div>

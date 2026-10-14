@@ -25,13 +25,10 @@ export function AdminTopBar({ leadCount = 0, inquiryCount = 0 }: AdminTopBarProp
   const welcome = ready ? displayName.split(" ")[0] || "Admin" : "Admin";
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-between bg-karim-700 px-3 text-white shadow-sm sm:px-4">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b-2 border-brand bg-black px-3 text-white shadow-sm sm:px-4">
       <div className="flex min-w-0 items-center gap-2">
         <Link href="/agent" className="flex items-center gap-2">
-          <span className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-white">
-            <Image src="/brand/logo.jpg" alt="Realtor Karim" fill className="object-contain p-0.5" />
-          </span>
-          <span className="truncate text-sm font-bold sm:text-base">Karim Real Estate</span>
+          <Image src="/brand/logo-cyan.png" alt="Realtor Karim" width={148} height={68} className="h-10 w-auto object-contain" />
         </Link>
         <button
           type="button"
@@ -51,7 +48,7 @@ export function AdminTopBar({ leadCount = 0, inquiryCount = 0 }: AdminTopBarProp
         >
           <Mail size={18} />
           {leadCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-cream">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-black">
               {leadCount > 9 ? "9+" : leadCount}
             </span>
           )}
@@ -59,13 +56,13 @@ export function AdminTopBar({ leadCount = 0, inquiryCount = 0 }: AdminTopBarProp
         <Link href="/agent" className="relative rounded-md p-2 text-white/90 hover:bg-white/10" aria-label="Inquiries">
           <Bell size={18} />
           {inquiryCount > 0 && (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-black px-1 text-[10px] font-bold text-cream">
+            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-black">
               {inquiryCount > 9 ? "9+" : inquiryCount}
             </span>
           )}
         </Link>
         <div className="ml-1 flex items-center gap-2 border-l border-white/20 pl-2 sm:pl-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-karim-500 text-[11px] font-bold ring-2 ring-white/30">
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-[11px] font-bold text-black ring-2 ring-white/30">
             {ready ? initials(displayName) : "KR"}
           </span>
           <span className="hidden items-center gap-1 text-sm sm:flex">

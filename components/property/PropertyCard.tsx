@@ -43,7 +43,7 @@ export function PropertyCard({ property }: { property: Property }) {
       <div className="space-y-4 p-5">
         <div className="flex items-center justify-between">
           <Badge>{property.type}</Badge>
-          <p className="text-sm font-semibold text-brand">{formatCurrency(property.price)}</p>
+          <p className="text-sm font-semibold text-black underline decoration-brand decoration-2 underline-offset-4">{formatCurrency(property.price)}</p>
         </div>
         <div>
           <h3 className="text-lg font-semibold text-black">{property.title}</h3>

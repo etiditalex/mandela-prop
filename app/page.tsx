@@ -1,126 +1,72 @@
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowRight } from "lucide-react";
 
 import { FutureRealEstateCta } from "@/components/home/FutureRealEstateCta";
+import { HomeHero } from "@/components/home/HomeHero";
 import { KarimCoastalIntro } from "@/components/home/KarimCoastalIntro";
-import { PortfolioServicesBand } from "@/components/home/PortfolioServicesBand";
+import { KarimFirmSplit } from "@/components/home/KarimFirmSplit";
 import { PropertyCard } from "@/components/property/PropertyCard";
 import { Button } from "@/components/ui/Button";
 import { FadeIn } from "@/components/ui/FadeIn";
+import { DEFAULT_HERO_SLIDES, HeroSlide } from "@/lib/homepageContent";
+import { getHomepageContent } from "@/lib/homepage";
 import { getAllProperties } from "@/services/propertyService";
 
-/** Remote hero (public file may be missing in some clones). Must stay on allowed `images` host. */
-const HERO_GREEN_LAND =
-  "https://res.cloudinary.com/dyfnobo9r/image/upload/v1781594394/land_for_sale_-home_page_tjwng5.jpg";
+function budgetCeilings(prices: number[]) {
+  const finite = prices.filter((price) => Number.isFinite(price) && price > 0);
+  const anchors = [500_000, 1_000_000, 2_500_000, 5_000_000, 10_000_000, 20_000_000, 50_000_000, 100_000_000];
+  if (!finite.length) return anchors.slice(2);
+  const min = Math.min(...finite);
+  const max = Math.max(...finite);
+  const fromAnchors = anchors.filter((amount) => amount >= min && amount <= max * 1.25);
+  if (fromAnchors.length >= 3) return fromAnchors;
+  const steps = [0.4, 0.6, 0.8, 1];
+  return steps.map((step) => {
+    const raw = min + (max - min) * step;
+    const magnitude = 10 ** Math.max(0, Math.floor(Math.log10(raw)) - 1);
+    return Math.ceil(raw / magnitude) * magnitude;
+  });
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const allProperties = await getAllProperties();
+  const [allProperties, homepage] = await Promise.all([getAllProperties(), getHomepageContent()]);
   const featuredProperties = allProperties.slice(0, 4);
+  const listingSlides: HeroSlide[] = allProperties
+    .filter((property) => property.coverImage)
+    .map((property) => ({ src: property.coverImage, alt: property.title }));
+  const seen = new Set<string>();
+  const fallbackSlides = [...DEFAULT_HERO_SLIDES, ...listingSlides].filter((slide) => {
+    if (seen.has(slide.src)) return false;
+    seen.add(slide.src);
+    return true;
+  }).slice(0, 6);
+  const slides = homepage.heroSlides ?? fallbackSlides;
+  const propertyTypes = [...new Set(allProperties.map((property) => property.type).filter(Boolean))].sort();
+  const regions = [...new Set(allProperties.map((property) => property.location).filter(Boolean))].sort();
 
   return (
     <div>
-      <section className="relative md:hidden">
-        <div className="relative isolate min-h-[100svh] w-full">
-          <Image
-            src={HERO_GREEN_LAND}
-            alt="Green land with luxury homes"
-            fill
-            priority
-            className="object-cover object-center"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/65 via-black/55 to-black/75 backdrop-blur-[2px]" />
-          <div className="relative z-10 flex min-h-[100svh] flex-col justify-center px-5 pb-36 pt-8 text-center">
-            <h1 className="text-balance font-semibold leading-tight tracking-tight text-white">
-              <span className="block text-[1.65rem] sm:text-3xl">Coastal&apos;s Gateway to</span>
-              <span className="mt-2 block text-[1.85rem] text-[var(--brand-soft)] sm:text-4xl">Premium Real Estate</span>
-            </h1>
-            <p className="mx-auto mt-6 max-w-md text-pretty text-sm leading-relaxed text-white/90 sm:text-base">
-              Curated homes, land, and investment opportunities with trusted guidance and a
-              seamless search experience tailored to you.
-            </p>
-            <div className="mt-10 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-              <Link
-                href="/properties"
-                className="inline-flex items-center justify-center gap-2 rounded-sm bg-brand px-8 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:bg-brand/90"
-              >
-                Discover More
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
+      <HomeHero
+        slides={slides}
+        copy={homepage.heroCopy}
+        propertyTypes={propertyTypes}
+        regions={regions}
+        budgetCeilings={budgetCeilings(allProperties.map((property) => property.price))}
+      />
 
-      {/* Tablet & desktop: same glass nav component as elsewhere, over hero image */}
-      <section className="relative z-0 hidden min-h-[100vh] w-full overflow-hidden text-white md:block">
-          <Image
-            src={HERO_GREEN_LAND}
-            alt="Green land with luxury homes"
-            fill
-            priority
-            className="object-cover"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/78 via-black/50 to-black/28 backdrop-blur-[2px]" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/68 via-black/22 to-black/24" />
+      <KarimCoastalIntro heading={homepage.portfolioHeading} items={homepage.portfolioCards ?? undefined} />
 
-          <div className="relative z-10 mx-auto flex min-h-[100vh] w-full max-w-7xl flex-col px-4 pb-14 pt-4 sm:px-6 sm:pb-16 sm:pt-8 lg:px-10 lg:pb-20 lg:pt-10">
-            <div className="flex flex-1 items-center pt-10 sm:pt-12">
-              <div className="grid w-full gap-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-                <div className="max-w-lg space-y-4 sm:space-y-5">
-                  <h1 className="text-3xl font-semibold leading-tight sm:text-5xl">
-                    Your Perfect
-                    <br />
-                    Home Awaits
-                  </h1>
-                  <p className="max-w-sm text-sm leading-6 text-white/80 sm:max-w-md sm:text-base sm:leading-7">
-                    Expert guidance, easy searches, and premium listings that help you
-                    discover your ideal suburban home.
-                  </p>
-                  <Link href="/properties">
-                    <Button className="w-full rounded-full border-brand bg-brand text-white hover:bg-brand/90 sm:w-auto">
-                      Get Started
-                    </Button>
-                  </Link>
-                </div>
-
-                <div className="flex flex-col gap-3 lg:items-end">
-                  <Link href="/properties">
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-full border-white/40 bg-white/10 px-5 py-3 text-sm text-white backdrop-blur-md hover:border-white hover:bg-white/15 hover:text-white sm:w-auto sm:px-7"
-                    >
-                      Hot Listings in Your Area
-                    </Button>
-                  </Link>
-                  <Link href="/contact">
-                    <Button
-                      variant="outline"
-                      className="w-full rounded-full border-white/40 bg-white/10 px-5 py-3 text-sm text-white backdrop-blur-md hover:border-white hover:bg-white/15 hover:text-white sm:w-auto sm:px-7"
-                    >
-                      Instant Tour Scheduling
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-      </section>
-
-      <KarimCoastalIntro />
+      <KarimFirmSplit />
 
       <section className="mx-auto w-full max-w-7xl px-4 py-20 sm:px-6 lg:px-10">
         <FadeIn>
           <div className="mb-8 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm uppercase tracking-[0.25em] text-brand">Featured</p>
+              <p className="inline-block border-b-2 border-brand pb-1 text-sm uppercase tracking-[0.25em] text-black">Featured</p>
               <h2 className="mt-3 text-3xl font-semibold">Signature Properties</h2>
             </div>
-            <Link href="/properties" className="text-sm font-medium text-zinc-700 hover:text-brand">
+            <Link href="/properties" className="text-sm font-medium text-black underline decoration-brand decoration-2 underline-offset-4">
               View all listings
             </Link>
           </div>
@@ -133,8 +79,6 @@ export default async function Home() {
           ))}
         </div>
       </section>
-
-      <PortfolioServicesBand />
 
       <FutureRealEstateCta />
 

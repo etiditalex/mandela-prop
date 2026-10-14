@@ -288,7 +288,7 @@ function EditorModal({
             type="file"
             accept="image/*"
             onChange={(e) => setCoverImage(e.target.files?.[0] ?? null)}
-            className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-karim-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-karim-800 hover:file:bg-karim-100 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
+            className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-karim-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-black hover:file:bg-karim-100 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
           />
           {initial.cover_image_url ? (
             <p className="text-xs text-zinc-500">Existing cover is set. Uploading replaces it.</p>

@@ -72,7 +72,7 @@ export function PublicNavDesktopPill({ variant, savedCount = 0 }: PublicNavDeskt
         aria-label="Home"
       >
         <Image
-          src="/brand/logo.jpg"
+          src="/brand/logo-cyan.png"
           alt="Realtor Karim"
           width={144}
           height={48}

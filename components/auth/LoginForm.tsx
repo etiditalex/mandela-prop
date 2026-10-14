@@ -100,7 +100,7 @@ export function LoginForm({
         {showSignup ? (
           <p className="text-sm text-zinc-600">
             No account?{" "}
-            <Link className="text-brand hover:underline" href="/signup">
+            <Link className="text-black underline decoration-brand decoration-2 underline-offset-4" href="/signup">
               Create one
             </Link>
           </p>

@@ -22,7 +22,7 @@ export function Footer() {
   }
 
   return (
-    <footer className="bg-brand text-white">
+    <footer className="border-t-2 border-brand bg-black text-white">
       <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-12 sm:grid-cols-2 sm:gap-10 sm:px-6 sm:py-14 lg:grid-cols-4 lg:px-10">
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold sm:text-3xl">About</h2>
@@ -76,7 +76,7 @@ export function Footer() {
                 key={item.label}
                 href={item.href}
                 aria-label={item.label}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-white text-brand transition hover:bg-white/90 sm:h-10 sm:w-10"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-sm bg-brand text-black transition hover:bg-brand/80 sm:h-10 sm:w-10"
               >
                 <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </Link>

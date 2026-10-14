@@ -8,7 +8,9 @@ import {
   ArrowUp,
   Building2,
   ClipboardList,
+  GalleryHorizontal,
   Home,
+  ImageIcon,
   KeyRound,
   MessageSquare,
   Mic,
@@ -160,21 +162,23 @@ export default function AgentDashboardPage() {
   }, []);
 
   const tiles = [
-    { title: "Available Listings", value: stats.availableListings, icon: Building2, tone: "bg-karim-700" },
-    { title: "Rentals", value: stats.rentals, icon: KeyRound, tone: "bg-karim-900" },
-    { title: "Sold Properties", value: stats.sold, icon: TrendingUp, tone: "bg-black" },
-    { title: "Total Properties", value: stats.properties, icon: Home, tone: "bg-karim-800" },
-    { title: "New Leads", value: stats.newLeads, icon: ClipboardList, tone: "bg-karim-700" },
-    { title: "Inquiries", value: stats.inquiries, icon: MessageSquare, tone: "bg-karim-900" },
-    { title: "News Updates", value: stats.news, icon: Newspaper, tone: "bg-black" },
-    { title: "Podcast Episodes", value: stats.podcasts, icon: Mic, tone: "bg-karim-800" },
+    { title: "Available Listings", value: stats.availableListings, icon: Building2, tone: "bg-brand text-black" },
+    { title: "Rentals", value: stats.rentals, icon: KeyRound, tone: "bg-black text-white" },
+    { title: "Sold Properties", value: stats.sold, icon: TrendingUp, tone: "bg-brand text-black" },
+    { title: "Total Properties", value: stats.properties, icon: Home, tone: "bg-black text-white" },
+    { title: "New Leads", value: stats.newLeads, icon: ClipboardList, tone: "bg-brand text-black" },
+    { title: "Inquiries", value: stats.inquiries, icon: MessageSquare, tone: "bg-black text-white" },
+    { title: "News Updates", value: stats.news, icon: Newspaper, tone: "bg-brand text-black" },
+    { title: "Podcast Episodes", value: stats.podcasts, icon: Mic, tone: "bg-black text-white" },
   ];
 
   const quickActions = [
-    { href: "/agent/properties", label: "Manage Properties", icon: Building2, color: "from-karim-600 to-karim-800" },
-    { href: "/agent/rentals", label: "Manage Rentals", icon: KeyRound, color: "from-karim-800 to-black" },
-    { href: "/agent/listing-leads", label: "View Leads", icon: ClipboardList, color: "from-zinc-800 to-black" },
-    { href: "/agent/newsroom-updates", label: "Newsroom Updates", icon: Newspaper, color: "from-karim-700 to-karim-900" },
+    { href: "/agent/properties", label: "Manage Properties", icon: Building2, color: "bg-brand text-black" },
+    { href: "/agent/rentals", label: "Manage Rentals", icon: KeyRound, color: "bg-black text-brand" },
+    { href: "/agent/listing-leads", label: "View Leads", icon: ClipboardList, color: "bg-brand text-black" },
+    { href: "/agent/newsroom-updates", label: "Newsroom Updates", icon: Newspaper, color: "bg-black text-brand" },
+    { href: "/agent/hero", label: "Homepage Hero", icon: ImageIcon, color: "bg-brand text-black" },
+    { href: "/agent/portfolio", label: "Karim Portfolio", icon: GalleryHorizontal, color: "bg-black text-brand" },
   ];
 
   return (
@@ -193,16 +197,16 @@ export default function AgentDashboardPage() {
             {tiles.map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.title} className={`flex items-center gap-4 px-5 py-6 text-white ${item.tone}`}>
+                <div key={item.title} className={`flex items-center gap-4 px-5 py-6 ${item.tone}`}>
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/20">
                     <Icon size={26} />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-3xl font-bold leading-none">{item.value}</span>
-                      <ArrowUp size={16} className="text-white/90" />
+                      <ArrowUp size={16} className="opacity-80" />
                     </div>
-                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-white/90">{item.title}</p>
+                    <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide opacity-80">{item.title}</p>
                   </div>
                 </div>
               );
@@ -223,11 +227,11 @@ export default function AgentDashboardPage() {
                     href={action.href}
                     className="group flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:border-karim-300 hover:shadow-md"
                   >
-                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${action.color} text-white`}>
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${action.color}`}>
                       <Icon size={18} />
                     </div>
                     <span className="flex-1 text-sm font-semibold text-zinc-800">{action.label}</span>
-                    <ArrowRight size={16} className="text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-karim-700" />
+                    <ArrowRight size={16} className="text-zinc-300 transition group-hover:translate-x-0.5 group-hover:text-black" />
                   </Link>
                 </motion.div>
               );
@@ -238,7 +242,7 @@ export default function AgentDashboardPage() {
             <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-lg font-bold text-zinc-900">Recent Leads</h2>
-                <Link href="/agent/listing-leads" className="text-xs font-medium text-karim-700 hover:underline">
+                <Link href="/agent/listing-leads" className="text-xs font-medium text-black underline decoration-brand decoration-2 underline-offset-4">
                   View all
                 </Link>
               </div>
@@ -254,7 +258,7 @@ export default function AgentDashboardPage() {
                       </div>
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
-                          lead.status === "new" ? "bg-karim-100 text-karim-900" : "bg-zinc-100 text-zinc-600"
+                          lead.status === "new" ? "bg-brand text-black" : "bg-zinc-100 text-zinc-600"
                         }`}
                       >
                         {lead.status}

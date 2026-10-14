@@ -29,13 +29,13 @@ const services = [
 
 export function PortfolioServicesBand() {
   return (
-    <section className="w-full bg-brand px-5 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-14 xl:px-12">
+    <section className="w-full border-y-2 border-brand bg-black px-5 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-14 xl:px-12">
       <div className="grid w-full gap-8 lg:min-h-[min(100vh,40rem)] lg:grid-cols-[minmax(0,38%)_minmax(0,1fr)] lg:gap-10 lg:gap-x-12">
         <div className="flex flex-col justify-center bg-white px-8 py-14 shadow-sm sm:px-10 sm:py-16 lg:px-12 lg:py-20 xl:px-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-brand/80">
+          <p className="inline-block border-b-2 border-brand pb-1 text-xs font-semibold uppercase tracking-[0.28em] text-black">
             Advisory
           </p>
-          <h2 className="mt-4 text-balance text-3xl font-semibold leading-tight tracking-tight text-brand sm:text-4xl lg:text-[2.35rem] lg:leading-[1.12]">
+          <h2 className="mt-4 text-balance text-3xl font-semibold leading-tight tracking-tight text-black sm:text-4xl lg:text-[2.35rem] lg:leading-[1.12]">
             Karim Real Estate Portfolio
           </h2>
           <p className="mt-6 max-w-md text-pretty text-sm leading-7 text-zinc-600 sm:text-base sm:leading-8">
@@ -48,7 +48,7 @@ export function PortfolioServicesBand() {
           <div className="grid w-full gap-x-10 gap-y-12 sm:grid-cols-2 lg:gap-x-12 lg:gap-y-14">
             {services.map(({ icon: Icon, title, description }) => (
               <div key={title} className="max-w-sm">
-                <Icon className="h-7 w-7 text-white/95" strokeWidth={1.5} aria-hidden />
+                <Icon className="h-7 w-7 text-brand" strokeWidth={1.5} aria-hidden />
                 <h3 className="mt-5 text-lg font-semibold leading-snug text-white">{title}</h3>
                 <p className="mt-3 text-sm leading-7 text-white/80">{description}</p>
               </div>

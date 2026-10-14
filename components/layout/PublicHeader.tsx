@@ -18,16 +18,16 @@ function LogoMark() {
   return (
     <Link
       href="/"
-      className="flex h-[84px] w-[10.75rem] items-center justify-center px-3"
+      className="flex h-[84px] items-center justify-center px-2"
       aria-label="Home"
     >
       <Image
-        src="/brand/logo.jpg"
+        src="/brand/logo-cyan.png"
         alt="Realtor Karim"
-        width={170}
-        height={84}
+        width={240}
+        height={111}
         priority
-        className="h-[84px] w-auto object-contain"
+        className="h-[76px] w-auto object-contain"
       />
     </Link>
   );
@@ -102,7 +102,7 @@ export function PublicHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b-2 border-brand bg-[#0e0e0e]">
+      <header className="sticky top-0 z-40 border-b-2 border-brand bg-black">
         <div className="mx-auto flex h-[100px] w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-10">
           <button
             type="button"
@@ -159,12 +159,12 @@ export function PublicHeader() {
             <button
               type="button"
               aria-label="Close menu"
-              className="absolute inset-0 cursor-default bg-black/55"
+              className="absolute inset-0 cursor-default bg-[rgba(4,102,102,0.55)]"
               onClick={() => setOpen(false)}
             />
 
             <motion.aside
-              className="absolute left-0 top-0 h-full w-[min(22rem,86vw)] bg-brand text-white shadow-2xl"
+              className="absolute left-0 top-0 h-full w-[min(22rem,86vw)] border-r-2 border-brand bg-black text-white shadow-2xl"
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}

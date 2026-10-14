@@ -83,7 +83,7 @@ export function AdminChrome({ children }: { children: React.ReactNode }) {
         )}
       >
         <main className="flex-1 p-4 sm:p-6">{children}</main>
-        <footer className="mt-auto border-t border-zinc-200 px-6 py-4 text-center text-sm text-karim-700">
+        <footer className="mt-auto border-t border-brand px-6 py-4 text-center text-sm text-black">
           <p>
             Karim Real Estate © {new Date().getFullYear()}
             <span className="ml-3 inline-flex items-center gap-2 align-middle">
@@ -92,7 +92,7 @@ export function AdminChrome({ children }: { children: React.ReactNode }) {
                   key={item.label}
                   href={item.href}
                   aria-label={item.label}
-                  className="hover:text-karim-900"
+                  className="text-black hover:text-brand"
                 >
                   <item.icon size={14} />
                 </a>

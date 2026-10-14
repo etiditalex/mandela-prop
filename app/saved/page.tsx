@@ -63,7 +63,7 @@ export default function SavedPropertiesPage() {
     <section className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 lg:px-10">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-[0.25em] text-brand">Saved</p>
+          <p className="text-sm uppercase tracking-[0.25em] text-black underline decoration-brand decoration-2 underline-offset-4">Saved</p>
           <h1 className="text-4xl font-semibold">Saved Properties</h1>
         </div>
         {savedProperties.length > 0 && (

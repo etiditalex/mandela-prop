@@ -100,7 +100,7 @@ export default function FaqPage() {
             <div className="space-y-0 shadow-sm">
               {leftFaqs.map((item, index) => (
                 <article key={item.question}>
-                  <h3 className="bg-[#f5ab45] px-4 py-4 text-lg font-semibold leading-tight text-[#0f172a] sm:px-8 sm:py-6 sm:text-2xl">
+                  <h3 className="bg-black px-4 py-4 text-lg font-semibold leading-tight text-white sm:px-8 sm:py-6 sm:text-2xl">
                     {item.question}
                   </h3>
                   {item.answer && (
@@ -116,7 +116,7 @@ export default function FaqPage() {
             <div className="space-y-0 shadow-sm">
               {rightFaqs.map((item, index) => (
                 <article key={item.question}>
-                  <h3 className="bg-brand px-4 py-4 text-lg font-semibold leading-tight text-white sm:px-8 sm:py-6 sm:text-2xl">
+                  <h3 className="bg-brand px-4 py-4 text-lg font-semibold leading-tight text-black sm:px-8 sm:py-6 sm:text-2xl">
                     {item.question}
                   </h3>
                   {item.answer && (

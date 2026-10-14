@@ -192,7 +192,7 @@ export function SearchDrawer({
           />
 
           <motion.aside
-            className="absolute right-0 top-0 flex h-full w-[min(26rem,92vw)] flex-col bg-brand text-white shadow-2xl"
+            className="absolute right-0 top-0 flex h-full w-[min(26rem,92vw)] flex-col border-l-2 border-brand bg-black text-white shadow-2xl"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -386,7 +386,7 @@ export function SearchDrawer({
               </div>
             </div>
 
-            <div className="sticky bottom-0 border-t border-white/15 bg-brand/95 px-5 py-6 backdrop-blur">
+            <div className="sticky bottom-0 border-t border-brand bg-black/95 px-5 py-6 backdrop-blur">
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"

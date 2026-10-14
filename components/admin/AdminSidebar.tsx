@@ -10,6 +10,8 @@ import {
   ChevronRight,
   ClipboardList,
   ExternalLink,
+  GalleryHorizontal,
+  ImageIcon,
   KeyRound,
   LayoutDashboard,
   LogOut,
@@ -26,10 +28,10 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { useAdminShell } from "./AdminShellContext";
 
 const shortcuts = [
-  { href: "/agent", label: "Dashboard", icon: BarChart3, color: "bg-karim-700", exact: true },
-  { href: "/agent/properties", label: "Properties", icon: Building2, color: "bg-karim-900" },
-  { href: "/agent/listing-leads", label: "Leads", icon: ClipboardList, color: "bg-black" },
-  { href: "/agent/rentals", label: "Rentals", icon: KeyRound, color: "bg-karim-800" },
+  { href: "/agent", label: "Dashboard", icon: BarChart3, color: "bg-brand text-black", exact: true },
+  { href: "/agent/properties", label: "Properties", icon: Building2, color: "bg-black text-brand" },
+  { href: "/agent/listing-leads", label: "Leads", icon: ClipboardList, color: "bg-white text-black ring-1 ring-brand" },
+  { href: "/agent/rentals", label: "Rentals", icon: KeyRound, color: "bg-brand text-black" },
 ];
 
 type NavItem = {
@@ -48,6 +50,8 @@ const navItems: NavItem[] = [
   { href: "/agent/settings", label: "Settings", icon: Settings },
   { href: "/agent/properties", label: "Properties", icon: Building2 },
   { href: "/agent/rentals", label: "Rentals", icon: KeyRound },
+  { href: "/agent/hero", label: "Hero", icon: ImageIcon },
+  { href: "/agent/portfolio", label: "Karim Portfolio", icon: GalleryHorizontal },
   { href: "/agent/newsroom-updates", label: "Newsroom/Updates", icon: Newspaper },
   { href: "/agent/podcast", label: "Podcast", icon: Mic },
   { href: "/agent/listing-leads", label: "Leads", icon: ClipboardList, badge: "leads" },
@@ -101,7 +105,7 @@ export function AdminSidebar({ badges = {} }: AdminSidebarProps) {
       <button
         type="button"
         onClick={toggleCollapsed}
-        className="absolute -right-3 top-4 z-50 hidden h-6 w-6 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:text-karim-800 lg:flex"
+        className="absolute -right-3 top-4 z-50 hidden h-6 w-6 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 shadow-sm hover:text-black lg:flex"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
@@ -116,7 +120,7 @@ export function AdminSidebar({ badges = {} }: AdminSidebarProps) {
               href={item.href}
               onClick={() => setMobileOpen(false)}
               title={item.label}
-              className={clsx("flex h-9 items-center justify-center rounded-md text-white shadow-sm", item.color)}
+              className={clsx("flex h-9 items-center justify-center rounded-md shadow-sm", item.color)}
             >
               <Icon size={16} />
             </Link>
@@ -132,14 +136,14 @@ export function AdminSidebar({ badges = {} }: AdminSidebarProps) {
           const className = clsx(
             "group relative flex items-center rounded-md text-sm font-medium transition-all duration-200",
             collapsed ? "justify-center px-2 py-2" : "gap-3 px-3 py-2",
-            active ? "bg-karim-50 text-karim-800" : "text-zinc-600 hover:bg-white hover:text-zinc-900",
+            active ? "border-l-2 border-brand bg-karim-50 text-black" : "text-zinc-600 hover:bg-white hover:text-black",
           );
 
           const inner = (
             <>
               <Icon
                 size={18}
-                className={clsx("relative shrink-0", active ? "text-karim-700" : "text-karim-600 group-hover:text-karim-800")}
+                className={clsx("relative shrink-0", active ? "text-black" : "text-zinc-500 group-hover:text-black")}
               />
               <AnimatePresence initial={false}>
                 {!collapsed && (
@@ -156,7 +160,7 @@ export function AdminSidebar({ badges = {} }: AdminSidebarProps) {
               </AnimatePresence>
               {item.external && !collapsed ? <ExternalLink size={14} className="shrink-0 text-zinc-400" /> : null}
               {!collapsed && badgeCount ? (
-                <span className="relative flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1.5 text-[10px] font-bold text-cream">
+                <span className="relative flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-black">
                   {badgeCount > 99 ? "99+" : badgeCount}
                 </span>
               ) : null}
@@ -199,7 +203,7 @@ export function AdminSidebar({ badges = {} }: AdminSidebarProps) {
           onClick={() => void handleLogout()}
           title={collapsed ? "Sign Out" : undefined}
           className={clsx(
-            "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-white hover:text-karim-800",
+            "flex w-full items-center rounded-md px-3 py-2 text-sm font-medium text-zinc-600 transition hover:bg-white hover:text-black",
             collapsed ? "justify-center" : "gap-3",
           )}
         >

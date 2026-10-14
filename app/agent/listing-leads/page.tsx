@@ -11,7 +11,7 @@ type LeadRow = Database["public"]["Tables"]["listing_leads"]["Row"];
 function badgeClass(status: LeadRow["status"]) {
   switch (status) {
     case "new":
-      return "bg-karim-50 text-karim-800 ring-1 ring-karim-100";
+      return "bg-karim-50 text-black ring-1 ring-karim-100";
     case "contacted":
       return "bg-amber-50 text-amber-800 ring-1 ring-amber-100";
     case "closed":

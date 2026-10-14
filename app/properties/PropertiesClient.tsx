@@ -11,6 +11,11 @@ import { Property } from "@/types/property";
 
 const PAGE_SIZE = 4;
 
+function readNumberParam(value: string | null) {
+  if (value == null || value.trim() === "") return Number.NaN;
+  return Number(value);
+}
+
 export function PropertiesClient({ properties }: { properties: Property[] }) {
   const searchParams = useSearchParams();
   const [filters, setFilters] = useState(defaultFilters);
@@ -24,10 +29,10 @@ export function PropertiesClient({ properties }: { properties: Property[] }) {
     const statusParam = searchParams?.get("status"); // comma list
     const loc = searchParams?.get("location");
     const type = searchParams?.get("type");
-    const minPrice = Number(searchParams?.get("minPrice") ?? "");
-    const maxPrice = Number(searchParams?.get("maxPrice") ?? "");
-    const bedsMin = Number(searchParams?.get("bedsMin") ?? "");
-    const bathsMin = Number(searchParams?.get("bathsMin") ?? "");
+    const minPrice = readNumberParam(searchParams?.get("minPrice") ?? null);
+    const maxPrice = readNumberParam(searchParams?.get("maxPrice") ?? null);
+    const bedsMin = readNumberParam(searchParams?.get("bedsMin") ?? null);
+    const bathsMin = readNumberParam(searchParams?.get("bathsMin") ?? null);
 
     const statuses = (statusParam ?? "")
       .split(",")

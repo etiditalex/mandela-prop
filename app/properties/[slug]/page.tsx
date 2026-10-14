@@ -51,7 +51,7 @@ export default async function PropertyDetailsPage({ params }: PropertyDetailsPag
           </div>
         </div>
         <aside className="space-y-6 rounded-sm border border-zinc-200 bg-white p-6">
-          <p className="text-sm uppercase tracking-[0.2em] text-brand">Price</p>
+          <p className="text-sm uppercase tracking-[0.2em] text-black underline decoration-brand decoration-2 underline-offset-4">Price</p>
           <p className="text-3xl font-semibold">{formatCurrency(property.price)}</p>
           <ul className="space-y-2 text-sm text-zinc-700">
             {!isLandType(property.type) && <li>{property.beds} Bedrooms</li>}

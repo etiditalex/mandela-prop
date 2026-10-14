@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-  /* Sampled from the Realtor Karim mark: sage on near-black, with white type. */
-  --brand: #30603c;
-  --brand-soft: #8fb89a;
-  --black: #0e0e0e;
-  --cream: #f6f7f5;
+  /* Logo colors are white and cyan only. Deep cyan is the same hue, darkened so type stays readable. */
+  --brand: #00f0f0;
+  --brand-soft: #00f0f0;
+  --black: #046666;
+  --cream: #f7ffff;
 }
 
 body {

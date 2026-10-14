@@ -49,7 +49,7 @@ export function SellLetForm() {
             onClick={() => setIntent("sell")}
             className={[
               "px-4 py-3 text-sm font-semibold uppercase tracking-[0.22em] transition",
-              intent === "sell" ? "bg-brand text-white" : "bg-transparent text-zinc-700 hover:bg-zinc-50",
+              intent === "sell" ? "bg-brand text-black" : "bg-transparent text-zinc-700 hover:bg-zinc-50",
             ].join(" ")}
           >
             Sell
@@ -59,7 +59,7 @@ export function SellLetForm() {
             onClick={() => setIntent("let")}
             className={[
               "px-4 py-3 text-sm font-semibold uppercase tracking-[0.22em] transition",
-              intent === "let" ? "bg-brand text-white" : "bg-transparent text-zinc-700 hover:bg-zinc-50",
+              intent === "let" ? "bg-brand text-black" : "bg-transparent text-zinc-700 hover:bg-zinc-50",
             ].join(" ")}
           >
             Let
@@ -171,7 +171,7 @@ export function SellLetForm() {
       <button
         type="submit"
         disabled={loading}
-        className="md:col-span-2 rounded-sm bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:bg-brand/90 disabled:opacity-60"
+        className="md:col-span-2 rounded-sm bg-brand px-6 py-3 text-sm font-semibold text-black transition hover:bg-brand/80 disabled:opacity-60"
       >
         {loading ? "Submitting..." : "Submit"}
       </button>

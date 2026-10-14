@@ -110,7 +110,7 @@ export default function AgentSettingsPage() {
 
       <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8">
         <div className="mb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">Profile</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-black">Profile</p>
           <h2 className="mt-1 text-xl font-bold text-slate-900">Account</h2>
           <p className="mt-2 text-sm text-slate-500">
             Update your profile and manage your staff session.
@@ -143,7 +143,7 @@ export default function AgentSettingsPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="rounded-xl bg-karim-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-karim-800 disabled:opacity-50"
+                className="rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-black shadow-sm transition hover:bg-karim-800 disabled:opacity-50"
               >
                 {loading ? "Saving…" : "Save changes"}
               </button>

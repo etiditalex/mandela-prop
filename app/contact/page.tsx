@@ -11,16 +11,16 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <section>
-      <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-brand text-white">
-        <div className="absolute inset-0 bg-[linear-gradient(120deg,#123f2e_0%,#1a5a42_52%,#123f2e_100%)]" />
+      <div className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden border-b-2 border-brand bg-black text-white">
+        <div className="absolute inset-0 bg-black" />
         <div className="absolute inset-y-0 left-0 w-[65%] bg-[url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-18" />
-        <div className="absolute inset-y-0 left-0 w-[65%] bg-[linear-gradient(180deg,rgba(18,63,46,0.2)_0%,rgba(18,63,46,0.78)_100%)]" />
-        <div className="absolute inset-y-0 left-[65%] w-[35%] bg-[#0e3a2a]" />
+        <div className="absolute inset-y-0 left-0 w-[65%] bg-[linear-gradient(180deg,rgba(0,0,0,0.2)_0%,rgba(0,0,0,0.78)_100%)]" />
+        <div className="absolute inset-y-0 left-[65%] w-[35%] bg-black" />
 
         <div className="relative mx-auto flex min-h-[21rem] w-full max-w-[88rem] items-end px-4 pb-8 sm:min-h-[26rem] sm:px-8 sm:pb-10 lg:min-h-[33rem] lg:px-12 lg:pb-14">
           <div className="w-full max-w-3xl">
             <p className="text-base font-semibold text-white/95 sm:text-lg">Let&apos;s Talk</p>
-            <div className="mt-3 h-[2px] w-full bg-[#d8c17a]" />
+            <div className="mt-3 h-[2px] w-full bg-brand" />
             <h1 className="mt-8 text-4xl font-semibold leading-none sm:mt-9 sm:text-6xl">Contact</h1>
           </div>
         </div>
@@ -87,15 +87,15 @@ export default function ContactPage() {
               />
             </div>
 
-            <Button type="submit" className="h-11 rounded-none bg-brand px-8 text-sm font-semibold uppercase tracking-wide text-white hover:bg-brand/90 sm:h-12">
+            <Button type="submit" className="h-11 rounded-none bg-brand px-8 text-sm font-semibold uppercase tracking-wide text-black hover:bg-brand/80 sm:h-12">
               Send
             </Button>
           </form>
         </div>
       </section>
 
-      <section className="relative left-1/2 w-screen -translate-x-1/2 bg-brand px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
-        <div className="mx-auto grid w-full max-w-[88rem] overflow-hidden border border-white/20 bg-[#d7e9de] lg:grid-cols-2">
+      <section className="relative left-1/2 w-screen -translate-x-1/2 border-y-2 border-brand bg-black px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">
+        <div className="mx-auto grid w-full max-w-[88rem] overflow-hidden border border-white/20 bg-[#f3ffff] lg:grid-cols-2">
           <div className="min-h-[16rem] sm:min-h-[20rem] lg:min-h-[32rem]">
             <iframe
               title="Karim Real Estate office location"
@@ -106,7 +106,7 @@ export default function ContactPage() {
             />
           </div>
 
-          <div className="flex items-center bg-[#d7e9de] p-6 sm:p-10 lg:p-14">
+          <div className="flex items-center bg-[#f3ffff] p-6 sm:p-10 lg:p-14">
             <div className="max-w-xl text-zinc-900">
               <h2 className="text-4xl font-semibold leading-none sm:text-6xl">Location</h2>
               <div className="mt-5 h-[2px] w-12 bg-brand" />
@@ -117,15 +117,15 @@ export default function ContactPage() {
               </p>
               <ul className="mt-8 space-y-3 text-sm sm:space-y-4 sm:text-xl">
                 <li className="flex items-start gap-3">
-                  <Phone className="mt-1 h-5 w-5 text-brand" />
+                  <Phone className="mt-1 h-5 w-5 text-black" />
                   <span>+254 700 000 000</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Mail className="mt-1 h-5 w-5 text-brand" />
+                  <Mail className="mt-1 h-5 w-5 text-black" />
                   <span>hello@karimrealestate.com</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <MapPin className="mt-1 h-5 w-5 text-brand" />
+                  <MapPin className="mt-1 h-5 w-5 text-black" />
                   <span>Kilifi, Bofa Road</span>
                 </li>
               </ul>

@@ -190,7 +190,7 @@ async function compressImageForUpload(file: File) {
 function listingStatusClass(status: PropertyRow["status"]) {
   switch (status) {
     case "available":
-      return "bg-karim-50 text-karim-800 ring-1 ring-karim-100";
+      return "bg-karim-50 text-black ring-1 ring-karim-100";
     case "sold":
       return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
     case "rented":
@@ -350,7 +350,7 @@ function RentalEditModal({
               <p className="text-sm font-semibold text-slate-900">Images</p>
               <p className="text-xs text-slate-500">Upload and manage rental photos.</p>
             </div>
-            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-karim-800 transition hover:bg-karim-50 disabled:cursor-not-allowed disabled:opacity-60">
+            <label className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-black transition hover:bg-karim-50 disabled:cursor-not-allowed disabled:opacity-60">
               {uploading ? "Uploading..." : "Add images"}
               <input
                 className="hidden"
@@ -372,7 +372,7 @@ function RentalEditModal({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={img.image_url ?? ""} alt="Rental" className="h-20 w-full object-cover" loading="lazy" />
                   {img.is_primary ? (
-                    <span className="absolute left-2 top-2 rounded-full bg-karim-700/90 px-2 py-0.5 text-[10px] font-semibold text-white">
+                    <span className="absolute left-2 top-2 rounded-full bg-brand px-2 py-0.5 text-[10px] font-semibold text-black">
                       Primary
                     </span>
                   ) : null}
@@ -703,7 +703,7 @@ export default function AgentRentalsPage() {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
           <div className="mb-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">New rental</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-black">New rental</p>
             <h3 className="mt-1 text-xl font-bold text-slate-900">Add house to rent</h3>
           </div>
 
@@ -800,7 +800,7 @@ export default function AgentRentalsPage() {
                 accept="image/*"
                 multiple
                 onChange={(event) => setCreateImages(Array.from(event.target.files ?? []))}
-                className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-karim-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-karim-800 hover:file:bg-karim-100 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
+                className="rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-700 outline-none transition-colors file:mr-3 file:rounded-sm file:border-0 file:bg-karim-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-black hover:file:bg-karim-100 focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
               />
               {createImages.length > 0 ? (
                 <p className="text-xs text-zinc-500">
@@ -812,7 +812,7 @@ export default function AgentRentalsPage() {
             <button
               type="submit"
               disabled={creating}
-              className="md:col-span-2 rounded-xl bg-karim-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-karim-800 disabled:opacity-50"
+              className="md:col-span-2 rounded-xl bg-brand px-5 py-3 text-sm font-semibold text-black shadow-sm transition hover:bg-karim-800 disabled:opacity-50"
             >
               {creating ? "Creating..." : "Add rental"}
             </button>
@@ -824,7 +824,7 @@ export default function AgentRentalsPage() {
 
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
           <div className="border-b border-slate-100 bg-slate-50/80 px-6 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">Inventory</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.15em] text-black">Inventory</p>
             <h3 className="mt-1 text-lg font-bold text-slate-900">Rental listings</h3>
             <p className="mt-1 text-sm text-slate-500">Edit details, upload images, and mark rentals as rented.</p>
           </div>

@@ -82,7 +82,7 @@ export default function AgentUsersPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-black">
             <UserCircle2 className="h-6 w-6" />
           </span>
           <div>
@@ -91,7 +91,7 @@ export default function AgentUsersPage() {
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-black">
             <UsersIcon className="h-6 w-6" />
           </span>
           <div>
@@ -100,7 +100,7 @@ export default function AgentUsersPage() {
           </div>
         </div>
         <div className="flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-5 shadow-sm">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-karim-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-karim-100 text-black">
             <UsersIcon className="h-6 w-6" />
           </span>
           <div>
@@ -112,7 +112,7 @@ export default function AgentUsersPage() {
 
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="border-b border-slate-100 px-6 py-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-karim-700">Directory</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-black">Directory</p>
           <h2 className="mt-1 text-lg font-bold text-slate-900">Registered profiles</h2>
           <p className="mt-1 text-sm text-slate-500">
             Admin-only roster from Supabase. Agents manage listings elsewhere.

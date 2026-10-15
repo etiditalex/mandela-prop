@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { PropertyCard } from "@/components/property/PropertyCard";
-import { PropertyFilters } from "@/components/property/PropertyFilters";
 import { Button } from "@/components/ui/Button";
 import { defaultFilters, filterProperties } from "@/lib/properties";
 import { Property } from "@/types/property";
@@ -18,13 +17,14 @@ function readNumberParam(value: string | null) {
 
 export function PropertiesClient({ properties }: { properties: Property[] }) {
   const searchParams = useSearchParams();
-  const [filters, setFilters] = useState(defaultFilters);
   const [page, setPage] = useState(1);
-  const uniqueLocations = ["All", ...new Set(properties.map((property) => property.location))];
-  const uniquePropertyTypes = ["All", ...new Set(properties.map((property) => property.type))];
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchParams]);
 
   const filteredProperties = useMemo(() => {
-    const base = filterProperties(properties, filters);
+    const base = filterProperties(properties, defaultFilters);
     const kind = searchParams?.get("kind"); // sale | rent
     const statusParam = searchParams?.get("status"); // comma list
     const loc = searchParams?.get("location");
@@ -50,7 +50,7 @@ export function PropertiesClient({ properties }: { properties: Property[] }) {
       if (Number.isFinite(bathsMin) && !Number.isNaN(bathsMin) && (p.baths ?? 0) < bathsMin) return false;
       return true;
     });
-  }, [filters, properties, searchParams]);
+  }, [properties, searchParams]);
   const totalPages = Math.max(1, Math.ceil(filteredProperties.length / PAGE_SIZE));
   const currentPageData = filteredProperties.slice(
     (page - 1) * PAGE_SIZE,
@@ -59,16 +59,6 @@ export function PropertiesClient({ properties }: { properties: Property[] }) {
 
   return (
     <div className="space-y-8">
-      <PropertyFilters
-        filters={filters}
-        locations={uniqueLocations}
-        propertyTypes={uniquePropertyTypes}
-        onChange={(next) => {
-          setFilters(next);
-          setPage(1);
-        }}
-      />
-
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {currentPageData.map((property) => (
           <PropertyCard key={property.id} property={property} />

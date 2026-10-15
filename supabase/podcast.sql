@@ -11,6 +11,8 @@ create table if not exists public.podcast_videos (
   created_at timestamptz not null default now()
 );
 
+alter table public.podcast_videos add column if not exists description text;
+
 create index if not exists idx_podcast_videos_published_at on public.podcast_videos(published_at desc);
 
 alter table public.podcast_videos enable row level security;

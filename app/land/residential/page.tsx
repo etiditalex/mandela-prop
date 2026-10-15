@@ -1,37 +1,41 @@
-import { PropertyCard } from "@/components/property/PropertyCard";
+import { Suspense } from "react";
+
+import { LandListings } from "@/components/property/LandListings";
+import { ListingSearchHero } from "@/components/property/PropertiesHero";
+import { landCategories, landCategoryList } from "@/lib/land";
 import { getLandProperties } from "@/services/propertyService";
+
+export const dynamic = "force-dynamic";
 
 export default async function ResidentialLandPage() {
   const properties = await getLandProperties("residential");
+  const category = landCategories.residential;
 
   return (
-    <section className="px-4 py-20 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="rounded-3xl border border-zinc-200 bg-white p-8 sm:p-12">
-        <p className="text-sm uppercase tracking-[0.25em] text-black underline decoration-brand decoration-2 underline-offset-4">Land Category</p>
-        <h1 className="mt-4 text-4xl font-semibold text-black sm:text-5xl">
-          Residential Land
-        </h1>
-        <p className="mt-6 max-w-3xl leading-8 text-zinc-600">
-          Explore residential plots for private homes, gated estates, holiday homes,
-          and community developments in desirable neighborhoods.
-        </p>
-        </div>
+    <div className="bg-cream">
+      <Suspense fallback={null}>
+        <ListingSearchHero
+          title={category.title}
+          description="Explore residential plots for private homes, gated estates, holiday homes, and community developments in desirable neighborhoods."
+          properties={properties}
+          basePath="/land"
+          typeLabel="All Land types"
+          typeOptions={landCategoryList.map((item) => item.title)}
+          showListingKind
+          landMode
+        />
+      </Suspense>
 
-        <div className="mt-10">
-          {properties.length > 0 ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {properties.map((property) => (
-                <PropertyCard key={property.id} property={property} />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-3xl border border-dashed border-zinc-300 bg-white p-10 text-center text-zinc-600">
-              No residential land listings are currently available in the database.
-            </div>
-          )}
+      <section className="px-4 py-16 sm:px-6 lg:px-10">
+        <div className="mx-auto max-w-7xl">
+          <Suspense fallback={null}>
+            <LandListings
+              properties={properties}
+              emptyMessage="No residential land listings are currently available in the database."
+            />
+          </Suspense>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

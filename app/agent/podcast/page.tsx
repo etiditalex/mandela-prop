@@ -11,6 +11,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 type PodcastRow = {
   id: string;
   title: string | null;
+  description: string | null;
   youtube_url: string;
   youtube_id: string | null;
   published_at: string | null;
@@ -54,6 +55,7 @@ function EditorModal({
   onSaved: () => void;
 }) {
   const [title, setTitle] = useState(initial.title ?? "");
+  const [description, setDescription] = useState(initial.description ?? "");
   const [youtubeUrl, setYouTubeUrl] = useState(initial.youtube_url ?? "");
   const [published, setPublished] = useState(Boolean(initial.published_at));
   const [saving, setSaving] = useState(false);
@@ -81,24 +83,29 @@ function EditorModal({
       const supabase = createSupabaseBrowserClient();
       const payload = {
         title: title.trim() || null,
+        description: description.trim() || null,
         youtube_url: url,
         youtube_id: youtubeId,
         published_at: published ? new Date().toISOString() : null,
       };
 
-      if (mode === "create") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: insertError } = await (supabase as any).from("podcast_videos").insert(payload);
-        if (insertError) throw new Error(insertError.message);
-      } else {
+      const save = async (body: Record<string, unknown>) => {
+        if (mode === "create") {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return (supabase as any).from("podcast_videos").insert(body);
+        }
         if (!initial.id) throw new Error("Missing video id.");
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { error: updateError } = await (supabase as any)
-          .from("podcast_videos")
-          .update(payload)
-          .eq("id", initial.id);
-        if (updateError) throw new Error(updateError.message);
+        return (supabase as any).from("podcast_videos").update(body).eq("id", initial.id);
+      };
+
+      let result = await save(payload);
+      if (result.error && String(result.error.message).toLowerCase().includes("description")) {
+        const withoutDescription = { ...payload };
+        delete withoutDescription.description;
+        result = await save(withoutDescription);
       }
+      if (result.error) throw new Error(result.error.message);
 
       onSaved();
     } catch (err) {
@@ -117,6 +124,17 @@ function EditorModal({
     >
       <form className="grid gap-4 md:grid-cols-2" onSubmit={onSubmit}>
         <Input id="pod_title" label="Title (optional)" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <label className="grid gap-2 text-sm text-zinc-700 md:col-span-2" htmlFor="pod_description">
+          <span className="font-medium">Summary (optional)</span>
+          <textarea
+            id="pod_description"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className="rounded-sm border border-zinc-300 p-3 text-sm outline-none focus:border-karim-500 focus:ring-2 focus:ring-karim-100"
+            placeholder="Short text shown under the episode title."
+          />
+        </label>
         <label className="grid gap-2 text-sm text-zinc-700" htmlFor="pod_published">
           <span className="font-medium">Visibility</span>
           <select

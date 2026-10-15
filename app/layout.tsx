@@ -13,13 +13,49 @@ const montserrat = Montserrat({
   display: "swap",
 });
 
+const siteUrl = "https://realtorkarim.co.ke";
+const siteTitle = "Karim Real Estate | Premium Real Estate";
+const siteDescription =
+  "Discover premium apartments, villas, and penthouses curated for modern luxury living.";
+const logo = {
+  url: "/brand/logo-cyan.png",
+  width: 2000,
+  height: 926,
+  alt: "Realtor Karim",
+  type: "image/png",
+} as const;
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
-    default: "Karim Real Estate | Premium Real Estate",
+    default: siteTitle,
     template: "%s | Karim Real Estate",
   },
-  description:
-    "Discover premium apartments, villas, and penthouses curated for modern luxury living.",
+  description: siteDescription,
+  applicationName: "Karim Real Estate",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    url: siteUrl,
+    siteName: "Karim Real Estate",
+    title: siteTitle,
+    description: siteDescription,
+    locale: "en_KE",
+    images: [logo],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteTitle,
+    description: siteDescription,
+    images: [logo.url],
+  },
+  icons: {
+    icon: [{ url: logo.url, type: "image/png" }],
+    shortcut: [logo.url],
+    apple: [{ url: logo.url }],
+  },
 };
 
 export default function RootLayout({

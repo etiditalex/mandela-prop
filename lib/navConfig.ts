@@ -21,3 +21,38 @@ export const contactNavLink = { href: "/contact", label: "Contact" } as const;
 export const newsroomNavLinks = [
   { href: "/newsroom/karim-podcast", label: "Karim Podcast" },
 ] as const;
+
+export type NavChild = { href: string; label: string };
+
+export type NavItem = {
+  href: string;
+  label: string;
+  children?: readonly NavChild[];
+};
+
+/** Desktop and mobile menu. Items with children open a dropdown; the rest are plain links. */
+export const mainNav: readonly NavItem[] = [
+  { href: "/", label: "Home" },
+  { href: "/about", label: "About" },
+  { href: "/properties", label: "Properties" },
+  {
+    href: "/services",
+    label: "Services",
+    children: [
+      { href: "/services", label: "Our services" },
+      { href: "/rental-management", label: "Rental management" },
+      { href: "/sell-or-let-your-home", label: "Sell or let your home" },
+    ],
+  },
+  {
+    href: "/land",
+    label: "Land",
+    children: [{ href: "/land", label: "All land" }, ...landNavLinks],
+  },
+  {
+    href: "/newsroom",
+    label: "Newsroom",
+    children: [{ href: "/newsroom", label: "Latest updates" }, ...newsroomNavLinks],
+  },
+  contactNavLink,
+];

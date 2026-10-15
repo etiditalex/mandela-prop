@@ -18,6 +18,32 @@ type PodcastRow = {
   created_at: string;
 };
 
+const PODCAST_COLUMNS = "id, title, description, youtube_url, youtube_id, published_at, created_at";
+const PODCAST_COLUMNS_WITHOUT_DESCRIPTION = "id, title, youtube_url, youtube_id, published_at, created_at";
+
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeoutMessage: string) {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  const timeoutPromise = new Promise<T>((_, reject) => {
+    timeoutHandle = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+  });
+
+  return Promise.race([Promise.resolve(promise), timeoutPromise]).finally(() => {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  });
+}
+
+function asPodcastRow(raw: Record<string, unknown>): PodcastRow {
+  return {
+    id: String(raw.id),
+    title: (raw.title as string | null) ?? null,
+    description: (raw.description as string | null) ?? null,
+    youtube_url: String(raw.youtube_url ?? ""),
+    youtube_id: (raw.youtube_id as string | null) ?? null,
+    published_at: (raw.published_at as string | null) ?? null,
+    created_at: String(raw.created_at ?? new Date().toISOString()),
+  };
+}
+
 function extractYouTubeId(url: string): string | null {
   try {
     const u = new URL(url);
@@ -52,7 +78,7 @@ function EditorModal({
   mode: "create" | "edit";
   initial: Partial<PodcastRow>;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (row: PodcastRow) => void;
 }) {
   const [title, setTitle] = useState(initial.title ?? "");
   const [description, setDescription] = useState(initial.description ?? "");
@@ -81,36 +107,67 @@ function EditorModal({
 
     try {
       const supabase = createSupabaseBrowserClient();
-      const payload = {
+      const sessionResult = await withTimeout(
+        supabase.auth.getSession(),
+        8000,
+        "Sign-in check is taking too long. Refresh the page and try again.",
+      );
+      if (!sessionResult.data.session) {
+        throw new Error("Your sign-in expired. Sign in again, then save the video.");
+      }
+
+      const payload: Record<string, unknown> = {
         title: title.trim() || null,
         description: description.trim() || null,
         youtube_url: url,
         youtube_id: youtubeId,
-        published_at: published ? new Date().toISOString() : null,
+        published_at: published ? initial.published_at ?? new Date().toISOString() : null,
       };
+      if (mode === "create") {
+        payload.created_by = sessionResult.data.session.user.id;
+      }
 
-      const save = async (body: Record<string, unknown>) => {
+      const save = async (body: Record<string, unknown>, columns: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const table = (supabase as any).from("podcast_videos");
         if (mode === "create") {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return (supabase as any).from("podcast_videos").insert(body);
+          return table.insert(body).select(columns);
         }
         if (!initial.id) throw new Error("Missing video id.");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (supabase as any).from("podcast_videos").update(body).eq("id", initial.id);
+        return table.update(body).eq("id", initial.id).select(columns);
       };
 
-      let result = await save(payload);
+      let columns = PODCAST_COLUMNS;
+      let result = await withTimeout(
+        save(payload, columns),
+        15000,
+        "Saving is taking too long. Refresh the page — the video may already be saved.",
+      );
       if (result.error && String(result.error.message).toLowerCase().includes("description")) {
-        result = await save({
-          title: payload.title,
-          youtube_url: payload.youtube_url,
-          youtube_id: payload.youtube_id,
-          published_at: payload.published_at,
-        });
+        delete payload.description;
+        columns = PODCAST_COLUMNS_WITHOUT_DESCRIPTION;
+        result = await withTimeout(
+          save(payload, columns),
+          15000,
+          "Saving is taking too long. Refresh the page — the video may already be saved.",
+        );
+      }
+      if (result.error && String(result.error.message).toLowerCase().includes("created_by")) {
+        delete payload.created_by;
+        result = await withTimeout(
+          save(payload, columns),
+          15000,
+          "Saving is taking too long. Refresh the page — the video may already be saved.",
+        );
       }
       if (result.error) throw new Error(result.error.message);
 
-      onSaved();
+      const saved = Array.isArray(result.data) ? result.data[0] : null;
+      if (!saved) {
+        throw new Error("The video was not saved. Sign in again as an admin, then try once more.");
+      }
+
+      onSaved(asPodcastRow(saved as Record<string, unknown>));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to save video.");
     } finally {
@@ -181,30 +238,60 @@ function EditorModal({
 
 export default function PodcastAdminPage() {
   const [rows, setRows] = useState<PodcastRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<PodcastRow | null>(null);
 
-  const load = async () => {
+  const load = async (allowEmpty = true) => {
     setError(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error: qError } = await (supabase as any)
-        .from("podcast_videos")
-        .select("*")
-        .order("published_at", { ascending: false, nullsFirst: true })
-        .order("created_at", { ascending: false })
-        .limit(200);
-      if (qError) {
-        setError(qError.message);
+      const sessionResult = await withTimeout(
+        supabase.auth.getSession(),
+        8000,
+        "Sign-in check is taking too long. Refresh the page.",
+      );
+      if (!sessionResult.data.session) {
+        setError("Your sign-in expired, so videos cannot be listed. Sign in again.");
         return;
       }
-      setRows(((data as unknown) as PodcastRow[] | null) ?? []);
+
+      const query = async (columns: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (supabase as any)
+          .from("podcast_videos")
+          .select(columns)
+          .order("created_at", { ascending: false })
+          .limit(200);
+      };
+
+      let result = await withTimeout(
+        query(PODCAST_COLUMNS),
+        12000,
+        "Loading videos is taking too long. Refresh the page.",
+      );
+      if (result.error && String(result.error.message).toLowerCase().includes("description")) {
+        result = await withTimeout(
+          query(PODCAST_COLUMNS_WITHOUT_DESCRIPTION),
+          12000,
+          "Loading videos is taking too long. Refresh the page.",
+        );
+      }
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      const next = ((result.data as Record<string, unknown>[] | null) ?? []).map(asPodcastRow);
+      if (next.length === 0 && !allowEmpty) return;
+      setRows(next);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load podcast videos.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -246,9 +333,15 @@ export default function PodcastAdminPage() {
           mode="create"
           initial={{}}
           onClose={() => setCreateOpen(false)}
-          onSaved={() => {
+          onSaved={(row) => {
             setCreateOpen(false);
-            void load();
+            setMessage(
+              row.published_at
+                ? "Video published. It stays in this list and shows on the public Karim Podcast page."
+                : "Video saved as a draft. It stays in this list. Choose Published when it should appear on the public page.",
+            );
+            setRows((current) => [row, ...current.filter((item) => item.id !== row.id)]);
+            void load(false);
           }}
         />
       ) : null}
@@ -258,9 +351,11 @@ export default function PodcastAdminPage() {
           mode="edit"
           initial={editTarget}
           onClose={() => setEditTarget(null)}
-          onSaved={() => {
+          onSaved={(row) => {
             setEditTarget(null);
-            void load();
+            setMessage(row.published_at ? "Video updated and published." : "Video updated and kept as a draft.");
+            setRows((current) => current.map((item) => (item.id === row.id ? row : item)));
+            void load(false);
           }}
         />
       ) : null}
@@ -355,7 +450,7 @@ export default function PodcastAdminPage() {
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-14 text-center text-sm text-slate-500">
-                    No videos yet. Click “Add video”.
+                    {loading ? "Loading videos..." : "No videos yet. Click “Add video”."}
                   </td>
                 </tr>
               ) : null}

@@ -12,17 +12,16 @@ export function createSupabaseBrowserClient() {
   }
 
   /**
-   * Important: don't keep a module-level singleton.
-   *
-   * In dev/HMR (and some Windows/proxy setups), Supabase auth can end up in a stuck initialization
-   * state which makes `auth.getSession()` hang. Creating a fresh client per call avoids the deadlock
-   * and makes session lookup reliably return or fail.
+   * @supabase/ssr already reuses one browser client. Its default Web Lock can stay
+   * held after the first request on Windows, so the next save waits forever.
+   * Run auth work immediately instead of queueing on that lock.
    */
   return createBrowserClient<Database>(url, anonKey, {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
+      lock: async (_name, _acquireTimeout, fn) => fn(),
     },
   });
 }

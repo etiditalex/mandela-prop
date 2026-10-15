@@ -6,7 +6,7 @@ import { AgentPageHeader } from "@/components/admin/AgentPageHeader";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { browserUserId, podcastRequest } from "@/lib/supabase/podcastRest";
 
 type PodcastRow = {
   id: string;
@@ -20,17 +20,6 @@ type PodcastRow = {
 
 const PODCAST_COLUMNS = "id, title, description, youtube_url, youtube_id, published_at, created_at";
 const PODCAST_COLUMNS_WITHOUT_DESCRIPTION = "id, title, youtube_url, youtube_id, published_at, created_at";
-
-function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, timeoutMessage: string) {
-  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-  const timeoutPromise = new Promise<T>((_, reject) => {
-    timeoutHandle = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
-  });
-
-  return Promise.race([Promise.resolve(promise), timeoutPromise]).finally(() => {
-    if (timeoutHandle) clearTimeout(timeoutHandle);
-  });
-}
 
 function asPodcastRow(raw: Record<string, unknown>): PodcastRow {
   return {
@@ -106,16 +95,6 @@ function EditorModal({
     }
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const sessionResult = await withTimeout(
-        supabase.auth.getSession(),
-        8000,
-        "Sign-in check is taking too long. Refresh the page and try again.",
-      );
-      if (!sessionResult.data.session) {
-        throw new Error("Your sign-in expired. Sign in again, then save the video.");
-      }
-
       const payload: Record<string, unknown> = {
         title: title.trim() || null,
         description: description.trim() || null,
@@ -124,41 +103,27 @@ function EditorModal({
         published_at: published ? initial.published_at ?? new Date().toISOString() : null,
       };
       if (mode === "create") {
-        payload.created_by = sessionResult.data.session.user.id;
+        const userId = browserUserId();
+        if (userId) payload.created_by = userId;
       }
 
-      const save = async (body: Record<string, unknown>, columns: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const table = (supabase as any).from("podcast_videos");
-        if (mode === "create") {
-          return table.insert(body).select(columns);
-        }
+      const save = (body: Record<string, unknown>, columns: string) => {
+        const search = `select=${encodeURIComponent(columns)}`;
+        if (mode === "create") return podcastRequest<Record<string, unknown>[]>("POST", search, body);
         if (!initial.id) throw new Error("Missing video id.");
-        return table.update(body).eq("id", initial.id).select(columns);
+        return podcastRequest<Record<string, unknown>[]>("PATCH", `id=eq.${initial.id}&${search}`, body);
       };
 
       let columns = PODCAST_COLUMNS;
-      let result = await withTimeout(
-        save(payload, columns),
-        15000,
-        "Saving is taking too long. Refresh the page — the video may already be saved.",
-      );
-      if (result.error && String(result.error.message).toLowerCase().includes("description")) {
+      let result = await save(payload, columns);
+      if (result.error && result.error.message.toLowerCase().includes("description")) {
         delete payload.description;
         columns = PODCAST_COLUMNS_WITHOUT_DESCRIPTION;
-        result = await withTimeout(
-          save(payload, columns),
-          15000,
-          "Saving is taking too long. Refresh the page — the video may already be saved.",
-        );
+        result = await save(payload, columns);
       }
-      if (result.error && String(result.error.message).toLowerCase().includes("created_by")) {
+      if (result.error && result.error.message.toLowerCase().includes("created_by")) {
         delete payload.created_by;
-        result = await withTimeout(
-          save(payload, columns),
-          15000,
-          "Saving is taking too long. Refresh the page — the video may already be saved.",
-        );
+        result = await save(payload, columns);
       }
       if (result.error) throw new Error(result.error.message);
 
@@ -248,37 +213,17 @@ export default function PodcastAdminPage() {
   const load = async (allowEmpty = true) => {
     setError(null);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const sessionResult = await withTimeout(
-        supabase.auth.getSession(),
-        8000,
-        "Sign-in check is taking too long. Refresh the page.",
-      );
-      if (!sessionResult.data.session) {
-        setError("Your sign-in expired, so videos cannot be listed. Sign in again.");
-        return;
-      }
-
-      const query = async (columns: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (supabase as any)
-          .from("podcast_videos")
-          .select(columns)
-          .order("created_at", { ascending: false })
-          .limit(200);
-      };
-
-      let result = await withTimeout(
-        query(PODCAST_COLUMNS),
-        12000,
-        "Loading videos is taking too long. Refresh the page.",
-      );
-      if (result.error && String(result.error.message).toLowerCase().includes("description")) {
-        result = await withTimeout(
-          query(PODCAST_COLUMNS_WITHOUT_DESCRIPTION),
-          12000,
+      const query = (columns: string) =>
+        podcastRequest<Record<string, unknown>[]>(
+          "GET",
+          `select=${encodeURIComponent(columns)}&order=created_at.desc&limit=200`,
+          undefined,
           "Loading videos is taking too long. Refresh the page.",
         );
+
+      let result = await query(PODCAST_COLUMNS);
+      if (result.error && result.error.message.toLowerCase().includes("description")) {
+        result = await query(PODCAST_COLUMNS_WITHOUT_DESCRIPTION);
       }
       if (result.error) {
         setError(result.error.message);
@@ -310,9 +255,7 @@ export default function PodcastAdminPage() {
     setError(null);
     setMessage(null);
     try {
-      const supabase = createSupabaseBrowserClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: dError } = await (supabase as any).from("podcast_videos").delete().eq("id", id);
+      const { error: dError } = await podcastRequest("DELETE", `id=eq.${id}`);
       if (dError) {
         setError(dError.message);
         return;

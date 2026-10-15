@@ -7,33 +7,21 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { DEFAULT_HERO_COPY } from "@/lib/homepageContent";
+import {
+  explainHomepageError,
+  HeroSettings,
+  HeroSlideRow,
+  loadHeroAdmin,
+  previewHeroSlides,
+} from "@/lib/homepageAdmin";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { uploadSiteImage } from "@/lib/uploadSiteImage";
-
-type HeroSettings = {
-  headline: string;
-  accent: string;
-  supporting_text: string;
-  cta_label: string;
-  cta_href: string;
-};
-
-type HeroSlideRow = {
-  id: string;
-  image_url: string;
-  alt: string;
-  sort_order: number;
-  published_at: string | null;
-};
 
 const fieldClass =
   "rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-black outline-none transition-colors focus:border-brand";
 
 function explain(message: string) {
-  if (/homepage_|schema cache|does not exist|relation/i.test(message)) {
-    return `${message} Run supabase/homepage.sql in the Supabase SQL editor, then refresh this page.`;
-  }
-  return message;
+  return explainHomepageError(message);
 }
 
 function SlideModal({
@@ -143,7 +131,8 @@ export default function HeroAdminPage() {
     cta_label: DEFAULT_HERO_COPY.ctaLabel,
     cta_href: DEFAULT_HERO_COPY.ctaHref,
   });
-  const [slides, setSlides] = useState<HeroSlideRow[]>([]);
+  const [slides, setSlides] = useState<HeroSlideRow[]>(previewHeroSlides);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [savingCopy, setSavingCopy] = useState(false);
@@ -155,18 +144,17 @@ export default function HeroAdminPage() {
     setError(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const client = supabase as any;
-      const [settingsResult, slidesResult] = await Promise.all([
-        client.from("homepage_hero_settings").select("headline, accent, supporting_text, cta_label, cta_href").eq("id", 1).maybeSingle(),
-        client.from("homepage_hero_slides").select("*").order("sort_order", { ascending: true }),
-      ]);
-      if (settingsResult.error) throw new Error(settingsResult.error.message);
-      if (slidesResult.error) throw new Error(slidesResult.error.message);
-      if (settingsResult.data) setSettings(settingsResult.data as HeroSettings);
-      setSlides((slidesResult.data as HeroSlideRow[] | null) ?? []);
+      const result = await loadHeroAdmin(supabase);
+      setSettings(result.settings);
+      setSlides(result.slides);
+      if (result.seeded) {
+        setMessage("These are the photos and text already on the homepage. Edit, add, or delete any of them.");
+      }
     } catch (err) {
+      setSlides(previewHeroSlides());
       setError(explain(err instanceof Error ? err.message : "Unable to load the hero."));
+    } finally {
+      setLoaded(true);
     }
   };
 
@@ -225,6 +213,10 @@ export default function HeroAdminPage() {
   };
 
   const onDelete = async (id: string) => {
+    if (id.startsWith("preview-")) {
+      setError("These photos are already on the homepage. Refresh this page once the homepage tables are ready, then you can edit or delete them.");
+      return;
+    }
     setBusy(id);
     setError(null);
     setMessage(null);
@@ -273,7 +265,7 @@ export default function HeroAdminPage() {
         title="Hero"
         breadcrumb="homepage"
         actions={
-          <Button type="button" onClick={() => setCreateOpen(true)}>
+          <Button type="button" disabled={!loaded} onClick={() => setCreateOpen(true)}>
             Add image
           </Button>
         }
@@ -328,16 +320,16 @@ export default function HeroAdminPage() {
                   <td className="px-4 py-3">{slide.published_at ? "Published" : "Draft"}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <button type="button" disabled={index === 0 || busy === slide.id} onClick={() => void move(index, -1)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
+                      <button type="button" disabled={!loaded || index === 0 || busy === slide.id} onClick={() => void move(index, -1)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
                         Up
                       </button>
-                      <button type="button" disabled={index === slides.length - 1 || busy === slide.id} onClick={() => void move(index, 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
+                      <button type="button" disabled={!loaded || index === slides.length - 1 || busy === slide.id} onClick={() => void move(index, 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
                         Down
                       </button>
-                      <button type="button" onClick={() => setEditTarget(slide)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs">
+                      <button type="button" disabled={!loaded || slide.id.startsWith("preview-")} onClick={() => setEditTarget(slide)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
                         Edit
                       </button>
-                      <button type="button" disabled={busy === slide.id} onClick={() => void onDelete(slide.id)} className="rounded-lg border border-red-100 px-2.5 py-1.5 text-xs text-red-600 disabled:opacity-60">
+                      <button type="button" disabled={!loaded || busy === slide.id} onClick={() => void onDelete(slide.id)} className="rounded-lg border border-red-100 px-2.5 py-1.5 text-xs text-red-600 disabled:opacity-60">
                         Delete
                       </button>
                     </div>
@@ -347,7 +339,9 @@ export default function HeroAdminPage() {
               {slides.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-14 text-center text-sm text-zinc-500">
-                    No hero images yet. Add one and it will show on the homepage.
+                    {loaded
+                      ? "No hero images yet. Add one and it will show on the homepage."
+                      : "Loading the homepage photos…"}
                   </td>
                 </tr>
               ) : null}

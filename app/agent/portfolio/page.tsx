@@ -7,28 +7,20 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { DEFAULT_PORTFOLIO_HEADING } from "@/lib/homepageContent";
+import {
+  explainHomepageError,
+  loadPortfolioAdmin,
+  PortfolioRow,
+  previewPortfolioRows,
+} from "@/lib/homepageAdmin";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { uploadSiteImage } from "@/lib/uploadSiteImage";
-
-type PortfolioRow = {
-  id: string;
-  label: string;
-  title: string;
-  description: string;
-  image_url: string;
-  alt: string;
-  sort_order: number;
-  published_at: string | null;
-};
 
 const fieldClass =
   "rounded-sm border border-zinc-300 bg-white px-3 py-2 text-sm text-black outline-none transition-colors focus:border-brand";
 
 function explain(message: string) {
-  if (/homepage_|schema cache|does not exist|relation/i.test(message)) {
-    return `${message} Run supabase/homepage.sql in the Supabase SQL editor, then refresh this page.`;
-  }
-  return message;
+  return explainHomepageError(message);
 }
 
 function CardModal({
@@ -144,7 +136,8 @@ function CardModal({
 
 export default function PortfolioAdminPage() {
   const [heading, setHeading] = useState(DEFAULT_PORTFOLIO_HEADING);
-  const [rows, setRows] = useState<PortfolioRow[]>([]);
+  const [rows, setRows] = useState<PortfolioRow[]>(previewPortfolioRows);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [savingHeading, setSavingHeading] = useState(false);
@@ -156,18 +149,17 @@ export default function PortfolioAdminPage() {
     setError(null);
     try {
       const supabase = createSupabaseBrowserClient();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const client = supabase as any;
-      const [settingsResult, itemsResult] = await Promise.all([
-        client.from("homepage_portfolio_settings").select("heading").eq("id", 1).maybeSingle(),
-        client.from("homepage_portfolio_items").select("*").order("sort_order", { ascending: true }),
-      ]);
-      if (settingsResult.error) throw new Error(settingsResult.error.message);
-      if (itemsResult.error) throw new Error(itemsResult.error.message);
-      if (settingsResult.data?.heading) setHeading(settingsResult.data.heading as string);
-      setRows((itemsResult.data as PortfolioRow[] | null) ?? []);
+      const result = await loadPortfolioAdmin(supabase);
+      setHeading(result.heading);
+      setRows(result.rows);
+      if (result.seeded) {
+        setMessage("These are the cards already on the homepage. Edit, add, or delete any of them.");
+      }
     } catch (err) {
+      setRows(previewPortfolioRows());
       setError(explain(err instanceof Error ? err.message : "Unable to load the portfolio section."));
+    } finally {
+      setLoaded(true);
     }
   };
 
@@ -222,6 +214,10 @@ export default function PortfolioAdminPage() {
   };
 
   const onDelete = async (id: string) => {
+    if (id.startsWith("preview-")) {
+      setError("These cards are already on the homepage. Refresh this page once the homepage tables are ready, then you can edit or delete them.");
+      return;
+    }
     setBusy(id);
     setError(null);
     setMessage(null);
@@ -270,7 +266,7 @@ export default function PortfolioAdminPage() {
         title="Karim Portfolio"
         breadcrumb="homepage"
         actions={
-          <Button type="button" onClick={() => setCreateOpen(true)}>
+          <Button type="button" disabled={!loaded} onClick={() => setCreateOpen(true)}>
             Add card
           </Button>
         }
@@ -317,16 +313,16 @@ export default function PortfolioAdminPage() {
                   <td className="px-4 py-3">{row.published_at ? "Published" : "Draft"}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      <button type="button" disabled={index === 0 || busy === row.id} onClick={() => void move(index, -1)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
+                      <button type="button" disabled={!loaded || index === 0 || busy === row.id} onClick={() => void move(index, -1)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
                         Up
                       </button>
-                      <button type="button" disabled={index === rows.length - 1 || busy === row.id} onClick={() => void move(index, 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
+                      <button type="button" disabled={!loaded || index === rows.length - 1 || busy === row.id} onClick={() => void move(index, 1)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
                         Down
                       </button>
-                      <button type="button" onClick={() => setEditTarget(row)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs">
+                      <button type="button" disabled={!loaded || row.id.startsWith("preview-")} onClick={() => setEditTarget(row)} className="rounded-lg border border-zinc-200 px-2.5 py-1.5 text-xs disabled:opacity-40">
                         Edit
                       </button>
-                      <button type="button" disabled={busy === row.id} onClick={() => void onDelete(row.id)} className="rounded-lg border border-red-100 px-2.5 py-1.5 text-xs text-red-600 disabled:opacity-60">
+                      <button type="button" disabled={!loaded || busy === row.id} onClick={() => void onDelete(row.id)} className="rounded-lg border border-red-100 px-2.5 py-1.5 text-xs text-red-600 disabled:opacity-60">
                         Delete
                       </button>
                     </div>
@@ -336,7 +332,9 @@ export default function PortfolioAdminPage() {
               {rows.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-14 text-center text-sm text-zinc-500">
-                    No cards yet. Add one and it will show in the section under the hero.
+                    {loaded
+                      ? "No cards yet. Add one and it will show in the section under the hero."
+                      : "Loading the homepage cards…"}
                   </td>
                 </tr>
               ) : null}

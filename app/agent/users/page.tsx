@@ -1,13 +1,13 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
 import { MoreHorizontal, UserCircle2, Users as UsersIcon } from "lucide-react";
 
 import { AgentPageHeader } from "@/components/admin/AgentPageHeader";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { readBrowserSession } from "@/lib/supabase/browserSession";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { Database } from "@/types/database";
@@ -15,43 +15,106 @@ import { Database } from "@/types/database";
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type AppRole = Database["public"]["Tables"]["profiles"]["Row"]["role"];
 
-function createIsolatedSignupClient() {
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number, timeoutMessage: string) {
+  const controller = new AbortController();
+  const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(timeoutMessage);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutHandle);
+  }
+}
+
+async function signUpAdminAccount(email: string, password: string, fullName: string) {
   const { url, anonKey, configured } = getSupabaseEnv();
   if (!configured || !url || !anonKey) {
     throw new Error("Supabase env vars are missing.");
   }
 
-  return createClient(url, anonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-      storage: {
-        getItem: () => null,
-        setItem: () => undefined,
-        removeItem: () => undefined,
+  const response = await fetchWithTimeout(
+    `${url}/auth/v1/signup`,
+    {
+      method: "POST",
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify({ email, password, data: { full_name: fullName } }),
     },
-  });
+    12000,
+    "Creating the admin is taking too long. Try again.",
+  );
+  const body = (await response.json().catch(() => ({}))) as {
+    msg?: string;
+    message?: string;
+    error_code?: string;
+    email?: string;
+    identities?: unknown[];
+    access_token?: string;
+    user?: { email?: string; identities?: unknown[] };
+  };
+  const identities = body.user?.identities ?? body.identities;
+  const alreadyRegistered =
+    response.status === 422 ||
+    body.error_code === "user_already_exists" ||
+    /already registered|already exists/i.test(body.msg || body.message || "") ||
+    (Array.isArray(identities) && identities.length === 0);
+
+  if (!response.ok && !alreadyRegistered) {
+    throw new Error(body.msg || body.message || "Unable to create the admin account.");
+  }
+
+  return {
+    email: body.user?.email?.toLowerCase() || body.email?.toLowerCase() || email,
+    alreadyRegistered,
+    confirmed: Boolean(body.access_token),
+  };
 }
 
 async function grantAdminRole(email: string, fullName: string) {
-  const supabase = createSupabaseBrowserClient();
+  const { url, anonKey, configured } = getSupabaseEnv();
+  const session = readBrowserSession();
+  if (!configured || !url || !anonKey || !session) {
+    throw new Error("Your sign-in expired. Sign in again, then add the admin.");
+  }
+
   const payload: { role: "admin"; full_name?: string } = { role: "admin" };
   if (fullName) payload.full_name = fullName;
+  let lastError = "The account was created, but admin access could not be granted yet. Refresh and set the role to admin.";
 
-  let lastError = "The account was created, but admin access could not be granted yet. Set the role to admin in the list.";
-  for (let attempt = 0; attempt < 4; attempt += 1) {
-    const { data, error } = await supabase
-      .from("profiles")
-      .update(payload)
-      .eq("email", email)
-      .select("*")
-      .maybeSingle();
-
-    if (!error && data) return data as ProfileRow;
-    if (error) lastError = error.message;
-    await new Promise((resolve) => setTimeout(resolve, 400));
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const response = await fetchWithTimeout(
+      `${url}/rest/v1/profiles?email=eq.${encodeURIComponent(email)}`,
+      {
+        method: "PATCH",
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${session.accessToken}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Prefer: "return=representation",
+        },
+        body: JSON.stringify(payload),
+      },
+      8000,
+      "Granting admin access is taking too long. Refresh the page and check the user list.",
+    );
+    const rows = (await response.json().catch(() => null)) as ProfileRow[] | { message?: string } | null;
+    if (!response.ok) {
+      lastError =
+        rows && !Array.isArray(rows) && rows.message
+          ? rows.message
+          : "Unable to grant admin access.";
+    } else if (Array.isArray(rows) && rows[0]) {
+      return rows[0];
+    }
+    await new Promise((resolve) => setTimeout(resolve, 300));
   }
 
   throw new Error(lastError);
@@ -142,34 +205,19 @@ export default function AgentUsersPage() {
 
     setAddingAdmin(true);
     try {
-      const signup = createIsolatedSignupClient();
-      const { data, error: signupError } = await signup.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } },
-      });
-
-      const alreadyRegistered =
-        Boolean(signupError && /already registered|already exists/i.test(signupError.message)) ||
-        Boolean(data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0);
-
-      if (signupError && !alreadyRegistered) {
-        throw new Error(signupError.message);
-      }
-
-      const savedEmail = data.user?.email?.toLowerCase() || email;
-      await grantAdminRole(savedEmail, fullName);
+      const signup = await signUpAdminAccount(email, password, fullName);
+      const saved = await grantAdminRole(signup.email, fullName);
       setAdminName("");
       setAdminEmail("");
       setAdminPassword("");
+      setUsers((current) => [saved, ...current.filter((user) => user.id !== saved.id && user.email !== saved.email)]);
       setMessage(
-        alreadyRegistered
-          ? `${savedEmail} already had an account. It is now an admin and keeps the existing password.`
-          : data.session
-            ? `${savedEmail} can sign in on the admin page with the password you set.`
-            : `${savedEmail} is an admin. They should open the confirmation email, then sign in with the password you set.`,
+        signup.alreadyRegistered
+          ? `${signup.email} already had an account. It is now an admin and keeps the existing password.`
+          : signup.confirmed
+            ? `${signup.email} can sign in on the admin page with the password you set.`
+            : `${signup.email} is an admin. They should open the confirmation email, then sign in with the password you set.`,
       );
-      await loadUsers();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to add admin.");
     } finally {

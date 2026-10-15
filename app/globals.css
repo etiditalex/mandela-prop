@@ -11,5 +11,10 @@
 }
 
 body {
-  font-family: var(--font-body), sans-serif;
+  font-family: var(--font-body), "Segoe UI", system-ui, sans-serif;
+}
+
+/* The hero paints with a system font so the headline does not wait on a webfont download. */
+.home-hero {
+  font-family: "Segoe UI", system-ui, sans-serif;
 }

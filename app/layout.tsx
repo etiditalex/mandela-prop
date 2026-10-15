@@ -10,7 +10,11 @@ import { SiteMain } from "@/components/layout/SiteMain";
 const montserrat = Montserrat({
   variable: "--font-body",
   subsets: ["latin"],
-  display: "swap",
+  weight: ["400", "600", "700"],
+  display: "optional",
+  preload: true,
+  adjustFontFallback: true,
+  fallback: ["Segoe UI", "system-ui", "sans-serif"],
 });
 
 const siteUrl = "https://realtorkarim.co.ke";

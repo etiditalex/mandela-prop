@@ -94,7 +94,10 @@ export function HomeHero({ slides, copy, propertyTypes, regions, budgetCeilings 
   };
 
   return (
-    <section className="relative isolate overflow-hidden text-white" aria-label="Featured properties">
+    <section
+      className="home-hero relative isolate overflow-hidden text-white"
+      aria-label="Featured properties"
+    >
       <div className="absolute inset-0 overflow-hidden" aria-hidden>
         <div
           className="flex h-full transition-transform duration-700 ease-in-out motion-reduce:transition-none"

@@ -40,9 +40,27 @@ function CardModal({
   const [alt, setAlt] = useState(initial.alt ?? "");
   const [imageUrl, setImageUrl] = useState(initial.image_url ?? "");
   const [file, setFile] = useState<File | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState(initial.image_url ?? "");
   const [published, setPublished] = useState(mode === "create" ? true : Boolean(initial.published_at));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewUrl(imageUrl.trim());
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file, imageUrl]);
+
+  const removeImage = () => {
+    setFile(null);
+    setImageUrl("");
+    setFileInputKey((current) => current + 1);
+  };
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -51,8 +69,8 @@ function CardModal({
       setError("Add a title and a description of at least 20 characters.");
       return;
     }
-    if (mode === "create" && !file && !imageUrl.trim()) {
-      setError("Upload an image or paste an image URL.");
+    if (!file && !imageUrl.trim()) {
+      setError("Add an image before saving. Upload a file or paste an image URL.");
       return;
     }
 
@@ -109,13 +127,30 @@ function CardModal({
         <Input id="card_alt" label="Image description" value={alt} onChange={(event) => setAlt(event.target.value)} />
         <label className="grid gap-2 text-sm text-zinc-700" htmlFor="card_file">
           <span className="font-medium">Upload image</span>
-          <input id="card_file" type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} className={fieldClass} />
+          <input
+            key={fileInputKey}
+            id="card_file"
+            type="file"
+            accept="image/*"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            className={fieldClass}
+          />
         </label>
         <Input id="card_url" label="Or paste an image URL" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://" />
-        {initial.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={initial.image_url} alt="" className="h-28 w-full object-cover" />
-        ) : null}
+        {previewUrl ? (
+          <div className="overflow-hidden rounded-sm border border-zinc-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewUrl} alt="" className="h-36 w-full object-cover" />
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <p className="text-xs text-zinc-500">Current image</p>
+              <button type="button" onClick={removeImage} className="text-xs font-semibold text-red-600 hover:text-red-700">
+                Remove image
+              </button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-zinc-500">No image on this card. Upload one or paste a URL before saving.</p>
+        )}
         <label className="flex items-center gap-2 text-sm text-zinc-700">
           <input type="checkbox" checked={published} onChange={(event) => setPublished(event.target.checked)} />
           Published on the homepage

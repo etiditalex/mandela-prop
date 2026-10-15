@@ -42,9 +42,6 @@ export default async function KarimPodcastPage() {
         <h1 className="text-center text-3xl font-bold uppercase tracking-tight text-black sm:text-4xl lg:text-5xl">
           Karim Podcast
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-center text-sm leading-6 text-zinc-600">
-          Published episodes play here. Watch the full video on this page, or follow it on YouTube.
-        </p>
         <KarimPodcastBoard videos={videos} />
       </div>
     </section>

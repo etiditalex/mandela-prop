@@ -101,9 +101,12 @@ function EditorModal({
 
       let result = await save(payload);
       if (result.error && String(result.error.message).toLowerCase().includes("description")) {
-        const withoutDescription = { ...payload };
-        delete withoutDescription.description;
-        result = await save(withoutDescription);
+        result = await save({
+          title: payload.title,
+          youtube_url: payload.youtube_url,
+          youtube_id: payload.youtube_id,
+          published_at: payload.published_at,
+        });
       }
       if (result.error) throw new Error(result.error.message);
 

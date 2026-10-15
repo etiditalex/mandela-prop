@@ -293,7 +293,9 @@ export default function PodcastAdminPage() {
       <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="border-b border-slate-100 bg-slate-50/80 px-6 py-4">
           <h3 className="text-lg font-bold text-slate-900">Videos</h3>
-          <p className="mt-1 text-sm text-slate-500">Manage which Karim Podcast videos appear on the public page.</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Add a YouTube link, then publish it. The episode shows on the public Karim Podcast page, where visitors can watch it on the site or follow it on YouTube.
+          </p>
         </div>
         {error ? <p className="px-6 py-4 text-sm text-red-600">{error}</p> : null}
         {message ? <p className="px-6 py-4 text-sm text-emerald-700">{message}</p> : null}

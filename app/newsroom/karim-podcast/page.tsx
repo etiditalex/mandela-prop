@@ -2,18 +2,12 @@ export const metadata = {
   title: "Karim Podcast",
 };
 
-import { InsightCard, InsightSection } from "@/components/newsroom/InsightLayout";
+import { KarimPodcastBoard, type PublicPodcastVideo } from "@/components/newsroom/KarimPodcastBoard";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-type PodcastVideo = {
-  id: string;
-  title: string | null;
-  youtube_url: string;
-  youtube_id: string | null;
-  description?: string | null;
-};
+type PodcastVideo = PublicPodcastVideo;
 
 export default async function KarimPodcastPage() {
   const supabase = createSupabaseServerClient();
@@ -43,39 +37,16 @@ export default async function KarimPodcastPage() {
   }
 
   return (
-    <InsightSection title="Karim Podcast">
-      {videos.length === 0 ? (
-        <p className="text-center text-sm text-zinc-600 md:col-span-2 lg:col-span-3">
-          New Karim Podcast episodes will appear here.
+    <section className="bg-white px-4 py-16 sm:px-6 sm:py-20 lg:px-10">
+      <div className="mx-auto w-full max-w-6xl">
+        <h1 className="text-center text-3xl font-bold uppercase tracking-tight text-black sm:text-4xl lg:text-5xl">
+          Karim Podcast
+        </h1>
+        <p className="mx-auto mt-4 max-w-2xl text-center text-sm leading-6 text-zinc-600">
+          Published episodes play here. Watch the full video on this page, or follow it on YouTube.
         </p>
-      ) : (
-        videos.map((video) => {
-          const title = video.title?.trim() || "Karim Podcast";
-          const embedSrc = video.youtube_id
-            ? `https://www.youtube.com/embed/${video.youtube_id}`
-            : video.youtube_url;
-          return (
-            <InsightCard
-              key={video.id}
-              title={title}
-              excerpt={video.description}
-              href={video.youtube_url}
-              action="Watch"
-              external
-              media={
-                <iframe
-                  className="h-full w-full"
-                  src={embedSrc}
-                  title={title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  allowFullScreen
-                />
-              }
-            />
-          );
-        })
-      )}
-    </InsightSection>
+        <KarimPodcastBoard videos={videos} />
+      </div>
+    </section>
   );
 }
